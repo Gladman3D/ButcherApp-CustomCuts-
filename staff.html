@@ -307,7 +307,10 @@ async function loadState() {
 }
 async function saveConfig() {
   if (!hasStorage) return;
-  try { await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog, pickupSlots }); }
+  try {
+    const catalogToSave = addonsCatalog.map(({ count, ...rest }) => ({ ...rest, count: 0 }));
+    await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog: catalogToSave, pickupSlots });
+  }
   catch (e) { showToast('Could not save changes — check connection'); }
 }
 async function saveOrders() {
