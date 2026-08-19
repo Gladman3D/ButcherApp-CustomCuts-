@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Dashboard — Central Prime Meats</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥩</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper:#F1E7D3; --paper-dim:#E7D9BB; --card:#FBF6EA; --ink:#2A211A; --ink-soft:#6B5D4D;
+    --oxblood:#7A2A2A; --oxblood-bright:#9C3A3A; --mustard:#B4842A; --sage:#54724F; --line:#CBB68F; --danger:#A83232;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px), var(--paper);
+    color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:18px 14px 40px;
+  }
+  .container{width:100%; max-width:640px; background:var(--card); border-radius:4px; border:1px solid var(--line); overflow:hidden; box-shadow:0 8px 24px rgba(42,33,26,0.14); margin-bottom:20px; position:relative;}
+  .container::before{content:""; position:absolute; top:0; left:0; right:0; height:5px; background:repeating-linear-gradient(-45deg, var(--oxblood) 0 10px, var(--mustard) 10px 20px); opacity:0.85;}
+  .banner{position:relative; height:100px; margin-top:5px; background:linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80') center/cover; display:flex; justify-content:space-between; align-items:flex-end; padding:14px 18px;}
+  .profile-area{display:flex; align-items:center; gap:12px;}
+  .logo{width:44px; height:44px; border-radius:50%; background:var(--oxblood); border:3px solid var(--card); display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:600; color:#fff; font-size:0.9rem; box-shadow:0 3px 8px rgba(0,0,0,0.4);}
+  .details h1{font-family:'Oswald',sans-serif; font-size:1rem; font-weight:600; color:#fff;}
+  .details p{font-size:0.7rem; color:#E7D9BB; margin-top:2px;}
+  .view-link{color:#fff; font-size:0.72rem; text-decoration:underline; opacity:0.85;}
+  .step{padding:22px 20px;}
+  .section-title{font-family:'Oswald',sans-serif; font-size:1.02rem; font-weight:600; margin-bottom:12px; color:var(--ink); display:flex; justify-content:space-between; align-items:baseline;}
+  .section-title small{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; color:var(--ink-soft); font-weight:500;}
+  .form-group{margin-bottom:18px;}
+  .form-group label{display:block; font-size:0.8rem; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
+  textarea,select,input[type=text],input[type=password],input[type=number]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
+  textarea:focus,select:focus,input:focus{border-color:var(--oxblood);}
+  .btn-primary{display:block; width:100%; background:var(--oxblood); color:#fff; border:none; padding:13px; border-radius:4px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
+  .btn-primary:hover{background:var(--oxblood-bright);}
+  .btn-secondary{display:block; width:100%; background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:11px; border-radius:4px; font-size:0.82rem; font-weight:600; cursor:pointer; margin-top:9px;}
+  .btn-secondary:hover{color:var(--ink); border-color:var(--ink-soft);}
+  .btn-small{background:var(--paper); border:1px solid var(--line); color:var(--ink); font-size:0.72rem; font-weight:600; padding:6px 10px; border-radius:3px; cursor:pointer; text-decoration:none; display:inline-block;}
+  .btn-small:hover{border-color:var(--oxblood);}
+  .btn-small.danger{color:var(--danger); border-color:var(--danger);}
+  #pin-view{text-align:center; padding:40px 20px;}
+  .pin-box{max-width:260px; margin:0 auto;}
+  .pin-input{text-align:center; font-size:1.4rem; letter-spacing:8px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
+  #admin-panel{display:none;}
+  .badge-notice{background:#EAEFE7; color:var(--sage); font-size:0.74rem; padding:5px 10px; border-radius:4px; display:inline-block; margin-bottom:14px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
+  .admin-tabs{display:flex; gap:5px; margin-bottom:16px; flex-wrap:wrap;}
+  .admin-tab{flex:1; min-width:64px; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft); padding:8px 4px; border-radius:4px; font-size:0.68rem; font-weight:600; cursor:pointer; text-align:center;}
+  .admin-tab.active{background:var(--oxblood); color:#fff; border-color:var(--oxblood);}
+  .admin-section{background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:15px; margin-bottom:14px;}
+  .admin-section h3{font-family:'Oswald',sans-serif; font-size:0.9rem; margin-bottom:10px; font-weight:600;}
+  .admin-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
+  .admin-row:last-child{border-bottom:none;}
+  .toggle-switch{position:relative; display:inline-block; width:40px; height:22px;}
+  .toggle-switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; cursor:pointer; inset:0; background:var(--line); transition:.2s; border-radius:22px;}
+  .slider:before{position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%;}
+  input:checked + .slider{background:var(--sage);}
+  input:checked + .slider:before{transform:translateX(18px);}
+  .add-item-form{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+  .order-card{background:var(--card); border:1px solid var(--line); border-radius:4px; padding:13px; margin-bottom:11px;}
+  .order-card-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; border-bottom:1px dashed var(--line); padding-bottom:6px;}
+  .order-card-header h4{font-family:'IBM Plex Mono',monospace; font-size:0.85rem;}
+  .status-pill{font-size:0.68rem; font-weight:700; padding:3px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:0.3px;}
+  .status-new{background:#F4E4DC; color:var(--oxblood);}
+  .status-preparing{background:#F6EBD2; color:var(--mustard);}
+  .status-ready{background:#E4EEE0; color:var(--sage);}
+  .order-line{font-size:0.79rem; color:var(--ink-soft); margin-bottom:3px;}
+  .order-notes{background:#F4E4DC; border-left:3px solid var(--oxblood); padding:6px 10px; font-size:0.77rem; color:var(--oxblood); margin-top:7px; border-radius:0 3px 3px 0;}
+  .order-actions{display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;}
+  .slot-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:0.8rem;}
+  .slot-row:last-child{border-bottom:none;}
+  .slot-cap-input{width:56px; padding:5px; text-align:center;}
+  .empty-state{text-align:center; padding:26px 10px; color:var(--ink-soft); font-size:0.83rem;}
+  .toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:4px; font-size:0.82rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:90vw; text-align:center;}
+  .toast.show{opacity:1;}
+  .pack-edit-card{background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:14px; margin-bottom:14px;}
+  .pack-edit-card h3{font-family:'Oswald',sans-serif; font-size:0.95rem; margin-bottom:12px;}
+  .pack-two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .pack-included-row{display:grid; grid-template-columns:1fr 44px 1fr 32px; gap:6px; align-items:center; margin-bottom:7px;}
+  .pack-included-row input{padding:8px; font-size:0.78rem;}
+  .pack-remove-btn{background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:3px; width:100%; height:34px; cursor:pointer; font-weight:700;}
+  .pack-add-row{display:grid; grid-template-columns:1fr 44px 1fr auto; gap:6px; align-items:center; margin:10px 0 4px;}
+  .pack-add-row input{padding:8px; font-size:0.78rem;}
+  .pack-add-btn{background:var(--ink); color:#fff; border:none; border-radius:3px; padding:0 12px; height:34px; cursor:pointer; font-size:0.78rem; font-weight:600;}
+  .field-label{font-size:0.7rem; color:var(--ink-soft); margin-bottom:4px; display:block;}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="banner" id="banner-bg">
+    <div class="profile-area">
+      <div class="logo" id="header-logo">CPM</div>
+      <div class="details">
+        <h1 id="header-shop-name">Central Prime Meats</h1>
+        <p id="header-shop-sub">Staff Dashboard</p>
+      </div>
+    </div>
+    <a class="view-link" href="index.html">View shop ↗</a>
+  </div>
+
+  <!-- PIN -->
+  <div id="pin-view" class="step">
+    <div class="pin-box">
+      <h3 style="font-family:'Oswald',sans-serif; font-size:1.05rem; margin-bottom:6px;">Staff access</h3>
+      <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:18px;">Enter the store PIN to open the prep dashboard.</p>
+      <div class="form-group">
+        <input type="password" id="staff-pin-input" class="pin-input" maxlength="4" placeholder="••••">
+        <span id="pin-error" style="color:var(--danger); font-size:0.75rem; display:block; margin-top:6px;"></span>
+      </div>
+      <button class="btn-primary" onclick="verifyStaffPin()">Unlock</button>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin-panel" class="step">
+    <div class="badge-notice">● Prep dashboard live</div>
+    <div class="admin-tabs">
+      <div class="admin-tab active" id="tab-orders" onclick="switchAdminTab('orders')">Orders <span id="order-count-badge">0</span></div>
+      <div class="admin-tab" id="tab-packs" onclick="switchAdminTab('packs')">Packs</div>
+      <div class="admin-tab" id="tab-catalog" onclick="switchAdminTab('catalog')">Extras</div>
+      <div class="admin-tab" id="tab-slots" onclick="switchAdminTab('slots')">Slots</div>
+      <div class="admin-tab" id="tab-branding" onclick="switchAdminTab('branding')">Branding</div>
+      <div class="admin-tab" id="tab-settings" onclick="switchAdminTab('settings')">Settings</div>
+    </div>
+
+    <div id="admin-orders-content">
+      <div class="section-title">Live order queue <small>prep sheet</small></div>
+      <div id="order-summary-line" style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:12px;"></div>
+      <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+        <input type="text" id="order-search-input" placeholder="Search by customer name" oninput="renderOrdersQueue()" style="flex:2; min-width:140px;">
+        <select id="order-sort-select" onchange="renderOrdersQueue()" style="flex:1; min-width:120px;">
+          <option value="newest">Newest first</option>
+          <option value="pickup">By pickup time</option>
+        </select>
+      </div>
+      <div id="incoming-orders-list"></div>
+      <button class="btn-secondary" onclick="exportOrdersCSV()">Export today's orders (CSV)</button>
+    </div>
+
+    <div id="admin-packs-content" style="display:none;">
+      <div class="section-title">Edit packs <small>changes apply live</small></div>
+      <div id="pack-edit-list"></div>
+    </div>
+
+    <div id="admin-catalog-content" style="display:none;">
+      <div class="section-title">Extras catalog <small>live toggle</small></div>
+      <div class="admin-section" id="admin-item-controls"></div>
+      <div class="admin-section">
+        <h3>Add a new extra</h3>
+        <div class="add-item-form">
+          <input type="text" id="new-item-name" placeholder="Item name (e.g. Wagyu Rump)">
+          <input type="text" id="new-item-desc" placeholder="Description (e.g. 500g dry-aged)">
+          <input type="number" id="new-item-price" min="0" step="0.5" placeholder="Price per unit ($)">
+          <button class="btn-primary" onclick="addNewItem()">Add to menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-slots-content" style="display:none;">
+      <div class="section-title">Pickup slot capacity <small>bookings reset per cycle</small></div>
+      <div class="admin-section" id="admin-slots-list"></div>
+      <button class="btn-secondary" onclick="resetSlotBookings()">Reset all bookings to 0</button>
+    </div>
+
+    <div id="admin-branding-content" style="display:none;">
+      <div class="section-title">Shop identity</div>
+      <div class="admin-section">
+        <div class="form-group"><label>Shop name</label><input type="text" id="edit-shop-name" value="Central Prime Meats"></div>
+        <div class="form-group"><label>Logo initials</label><input type="text" id="edit-shop-logo" value="CPM" maxlength="4"></div>
+        <div class="form-group"><label>Tagline</label><input type="text" id="edit-shop-sub" value="Local Quality Butcher • Est. 1994"></div>
+
+        <div class="form-group">
+          <label>Banner image</label>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+            <img id="banner-preview" src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80" alt="Current banner" style="width:84px; height:52px; object-fit:cover; border-radius:4px; border:1px solid var(--line);">
+            <div style="flex:1;">
+              <input type="file" id="banner-upload-input" accept="image/*" onchange="handleBannerUpload(this)" style="padding:8px; font-size:0.78rem;">
+              <span id="banner-upload-status" style="font-size:0.72rem; color:var(--ink-soft); display:block; margin-top:4px;">JPG or PNG, resized automatically</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <span class="field-label">Or paste an image URL instead</span>
+          <input type="text" id="edit-shop-banner" value="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80">
+        </div>
+
+        <div class="form-group"><label>Address</label><input type="text" id="edit-shop-address" placeholder="123 High Street, Your Suburb"></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="edit-shop-phone" placeholder="(07) 1234 5678"></div>
+        <div class="form-group"><label>Opening hours</label><input type="text" id="edit-shop-hours" placeholder="Tue–Sat, 8am–5pm"></div>
+        <div class="form-group"><label>Order policy (shown at checkout)</label><textarea id="edit-shop-policy" rows="2"></textarea></div>
+
+        <button class="btn-primary" onclick="saveStoreBranding()">Save branding</button>
+      </div>
+    </div>
+
+    <div id="admin-settings-content" style="display:none;">
+      <div class="section-title">Store status <small>pause taking new orders</small></div>
+      <div class="admin-section">
+        <div class="admin-row">
+          <div>
+            <h4 style="font-size:0.87rem;">Accepting online pre-orders</h4>
+            <span style="font-size:0.74rem; color:var(--ink-soft);">Turn off if the shop is closed or fully booked</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="pause-toggle" checked onchange="togglePauseOrders(this)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="section-title">Backup your data</div>
+      <div class="admin-section">
+        <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:12px;">Download everything — packs, extras, slots, branding, and all orders — as a single file you can keep as a backup.</p>
+        <button class="btn-primary" onclick="exportAllData()">Download full backup (JSON)</button>
+      </div>
+    </div>
+
+    <button class="btn-secondary" style="margin-top:6px;" onclick="staffLogout()">Lock portal</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY_CONFIG = 'shop-config';
+const STORAGE_KEY_ORDERS = 'orders';
+
+const SUPABASE_URL = 'https://dkuizdsxsqziaxhuasto.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_98nU1oGfgwqpLS_ON80TvA_fsZFcx-H';
+const SHOP_ID = 'default';
+
+let sb = null;
+if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (e) { sb = null; }
+}
+const hasStorage = !!sb;
+
+async function dbGet(key) {
+  const { data, error } = await sb.from('app_data').select('value').eq('shop_id', SHOP_ID).eq('key', key).maybeSingle();
+  if (error) throw error;
+  return data ? data.value : null;
+}
+async function dbSet(key, value) {
+  const { error } = await sb.from('app_data').upsert(
+    { shop_id: SHOP_ID, key, value, updated_at: new Date().toISOString() },
+    { onConflict: 'shop_id,key' }
+  );
+  if (error) throw error;
+}
+
+let shopProfile = {
+  name: "Central Prime Meats", logoText: "CPM", subtitle: "Local Quality Butcher • Est. 1994",
+  bannerUrl: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80",
+  address: "", phone: "", hours: "",
+  policyText: "Orders can be changed or cancelled up to 24 hours before your pickup slot.",
+  ordersPaused: false
+};
+
+let boxOptions = {
+  family: { price: 65, name: "Family Pack", tagline: "balanced cuts", included: [
+    { name: "Ribeye Fillet", qty: 1, note: "2x thick-cut steaks (~500g)" },
+    { name: "Premium Sausages", qty: 1, note: "1kg butcher's choice thick beef" },
+    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
+  ]},
+  bbq: { price: 95, name: "BBQ Stacker", tagline: "heavy steak bundle", included: [
+    { name: "Ribeye Fillet", qty: 2, note: "2x thick-cut steaks (~500g) each" },
+    { name: "Premium Sausages", qty: 2, note: "1kg butcher's choice thick beef each" },
+    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
+  ]}
+};
+
+let addonsCatalog = [
+  { id: 'brisket', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5 },
+  { id: 'bacon', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
+];
+
+let pickupSlots = [
+  { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 },
+  { id: 'fri2', label: 'Friday, 3:30 PM – 4:00 PM', capacity: 6, booked: 0 },
+  { id: 'fri3', label: 'Friday, 4:00 PM – 4:30 PM', capacity: 4, booked: 3 },
+  { id: 'sat1', label: 'Saturday, 9:00 AM – 9:30 AM', capacity: 8, booked: 0 }
+];
+
+let ordersQueue = [];
+let isStaffLoggedIn = false;
+const STAFF_PIN = '1994';
+
+async function loadState() {
+  if (!hasStorage) return;
+  try {
+    const cfg = await dbGet(STORAGE_KEY_CONFIG);
+    if (cfg) {
+      if (cfg.shopProfile) shopProfile = cfg.shopProfile;
+      if (cfg.boxOptions) boxOptions = cfg.boxOptions;
+      if (cfg.addonsCatalog) addonsCatalog = cfg.addonsCatalog;
+      if (cfg.pickupSlots) pickupSlots = cfg.pickupSlots;
+    }
+  } catch (e) {}
+  try {
+    const ord = await dbGet(STORAGE_KEY_ORDERS);
+    if (ord) ordersQueue = ord;
+  } catch (e) {}
+}
+async function saveConfig() {
+  if (!hasStorage) return;
+  try { await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog, pickupSlots }); }
+  catch (e) { showToast('Could not save changes — check connection'); }
+}
+async function saveOrders() {
+  if (!hasStorage) return;
+  try { await dbSet(STORAGE_KEY_ORDERS, ordersQueue); }
+  catch (e) { showToast('Could not save order — check connection'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function applyStoreBranding() {
+  document.getElementById('header-shop-name').innerText = shopProfile.name;
+  document.getElementById('header-logo').innerText = shopProfile.logoText;
+  document.getElementById('banner-bg').style.backgroundImage =
+    `linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('${shopProfile.bannerUrl}')`;
+}
+
+function renderAdminControls() {
+  const adminEl = document.getElementById('admin-item-controls');
+  if (addonsCatalog.length === 0) { adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet — add one below.</div>`; return; }
+  adminEl.innerHTML = addonsCatalog.map(item => `
+    <div class="admin-row">
+      <div>
+        <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem;">$${item.price}</span></h4>
+        <span style="font-size:0.74rem; color:var(--ink-soft);">${item.desc}</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:0.72rem; color:${item.inStock ? 'var(--sage)' : 'var(--danger)'};">${item.inStock ? 'Active' : 'Paused'}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${item.inStock ? 'checked' : ''} onchange="toggleStock('${item.id}')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>`).join('');
+}
+
+function renderSlotsAdmin() {
+  const el = document.getElementById('admin-slots-list');
+  el.innerHTML = pickupSlots.map(s => `
+    <div class="slot-row">
+      <span>${s.label}</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span style="font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:0.75rem;">${s.booked} booked /</span>
+        <input type="number" min="0" class="slot-cap-input" value="${s.capacity}" onchange="updateSlotCapacity('${s.id}', this.value)">
+      </span>
+    </div>`).join('');
+}
+
+function renderOrdersQueue() {
+  const queueEl = document.getElementById('incoming-orders-list');
+  document.getElementById('order-count-badge').innerText = ordersQueue.length;
+
+  const searchInput = document.getElementById('order-search-input');
+  const sortSelect = document.getElementById('order-sort-select');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const sortMode = sortSelect ? sortSelect.value : 'newest';
+
+  let visible = ordersQueue.filter(o => !searchTerm || o.customer.toLowerCase().includes(searchTerm));
+  if (sortMode === 'pickup') visible = [...visible].sort((a, b) => a.pickup.localeCompare(b.pickup));
+
+  const revenue = ordersQueue.reduce((sum, o) => sum + (parseFloat(String(o.total).replace('$', '')) || 0), 0);
+  const summaryEl = document.getElementById('order-summary-line');
+  if (summaryEl) summaryEl.innerText = ordersQueue.length === 0 ? '' : `${ordersQueue.length} active order${ordersQueue.length === 1 ? '' : 's'} · $${revenue.toFixed(2)} total`;
+
+  if (visible.length === 0) { queueEl.innerHTML = `<div class="empty-state">${searchTerm ? 'No orders match that search.' : 'No active orders in the queue.'}</div>`; return; }
+
+  queueEl.innerHTML = visible.map(order => {
+    const statusClass = order.status === 'Preparing' ? 'status-preparing' : order.status === 'Ready' ? 'status-ready' : 'status-new';
+    const phoneDigits = (order.customerPhone || '').replace(/[^\d+]/g, '');
+    const contactLinks = phoneDigits
+      ? `<a class="btn-small" href="tel:${phoneDigits}">Call</a> <a class="btn-small" href="sms:${phoneDigits}">Text</a>`
+      : '';
+    return `
+    <div class="order-card">
+      <div class="order-card-header">
+        <h4>#${order.id} — ${order.customer}</h4>
+        <span class="status-pill ${statusClass}">${order.status}</span>
+      </div>
+      <div class="order-line"><strong>Pack:</strong> ${order.boxName} (${order.total})</div>
+      <div class="order-line"><strong>Extras:</strong> ${order.extras || 'None'}</div>
+      <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
+      ${order.customerPhone ? `<div class="order-line"><strong>Phone:</strong> ${order.customerPhone} ${contactLinks}</div>` : ''}
+      ${order.customerEmail ? `<div class="order-line"><strong>Email:</strong> ${order.customerEmail}</div>` : ''}
+      ${order.notes ? `<div class="order-notes"><strong>Note:</strong> ${order.notes}</div>` : ''}
+      <div class="order-actions">
+        ${order.status === 'New' ? `<button class="btn-small" onclick="setOrderStatus(${order.id},'Preparing')">Start prepping</button>` : ''}
+        ${order.status === 'Preparing' ? `<button class="btn-small" onclick="setOrderStatus(${order.id},'Ready')">Mark ready</button>` : ''}
+        ${order.status === 'Ready' ? `<button class="btn-small" onclick="completeOrder(${order.id})">Picked up</button>` : ''}
+        <button class="btn-small danger" onclick="deleteOrder(${order.id})">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportOrdersCSV() {
+  if (ordersQueue.length === 0) { showToast('No orders to export yet.'); return; }
+  const header = ['Order ID', 'Customer', 'Phone', 'Email', 'Pack', 'Extras', 'Notes', 'Pickup', 'Total', 'Status'];
+  const rows = ordersQueue.map(o => [o.id, o.customer, o.customerPhone || '', o.customerEmail || '', o.boxName, o.extras || '', (o.notes || '').replace(/"/g, "'"), o.pickup, o.total, o.status]);
+  const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function renderPacksAdmin() {
+  const el = document.getElementById('pack-edit-list');
+  el.innerHTML = Object.keys(boxOptions).map(key => {
+    const box = boxOptions[key];
+    const includedRows = box.included.map((item, idx) => `
+      <div class="pack-included-row">
+        <input type="text" value="${item.name}" onchange="updatePackItemField('${key}', ${idx}, 'name', this.value)" placeholder="Cut name">
+        <input type="number" min="1" value="${item.qty}" onchange="updatePackItemField('${key}', ${idx}, 'qty', this.value)">
+        <input type="text" value="${item.note}" onchange="updatePackItemField('${key}', ${idx}, 'note', this.value)" placeholder="Detail (e.g. 500g)">
+        <button class="pack-remove-btn" onclick="removePackItem('${key}', ${idx})" title="Remove">×</button>
+      </div>`).join('');
+    return `
+      <div class="pack-edit-card">
+        <h3>${box.name}</h3>
+        <div class="pack-two-col">
+          <div class="form-group" style="margin-bottom:10px;">
+            <span class="field-label">Pack name</span>
+            <input type="text" value="${box.name}" onchange="updatePackField('${key}', 'name', this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <span class="field-label">Base price ($)</span>
+            <input type="number" min="0" step="1" value="${box.price}" onchange="updatePackField('${key}', 'price', this.value)">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:6px;">
+          <span class="field-label">Tagline (shown on the pack card)</span>
+          <input type="text" value="${box.tagline}" onchange="updatePackField('${key}', 'tagline', this.value)">
+        </div>
+        <span class="field-label" style="margin-top:8px; display:block;">Included cuts</span>
+        <div id="pack-items-${key}">${includedRows || '<div class="empty-state">No cuts yet — add one below.</div>'}</div>
+        <div class="pack-add-row">
+          <input type="text" id="pack-add-name-${key}" placeholder="Cut name">
+          <input type="number" id="pack-add-qty-${key}" min="1" value="1">
+          <input type="text" id="pack-add-note-${key}" placeholder="Detail">
+          <button class="pack-add-btn" onclick="addPackItem('${key}')">Add</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function verifyStaffPin() {
+  const entered = document.getElementById('staff-pin-input').value;
+  if (entered === STAFF_PIN) {
+    isStaffLoggedIn = true;
+    document.getElementById('pin-view').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    renderOrdersQueue(); renderPacksAdmin(); renderAdminControls(); renderSlotsAdmin();
+  } else {
+    document.getElementById('pin-error').innerText = 'Incorrect PIN — try again.';
+    document.getElementById('staff-pin-input').value = '';
+  }
+}
+
+function staffLogout() {
+  isStaffLoggedIn = false;
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('pin-view').style.display = 'block';
+  document.getElementById('staff-pin-input').value = '';
+}
+
+function switchAdminTab(tab) {
+  ['orders','packs','catalog','slots','branding','settings'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`admin-${t}-content`).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'orders') renderOrdersQueue();
+  if (tab === 'packs') renderPacksAdmin();
+  if (tab === 'catalog') renderAdminControls();
+  if (tab === 'slots') renderSlotsAdmin();
+}
+
+async function toggleStock(itemId) {
+  const item = addonsCatalog.find(i => i.id === itemId);
+  if (!item) return;
+  item.inStock = !item.inStock;
+  renderAdminControls();
+  await saveConfig();
+}
+
+async function addNewItem() {
+  const nameInput = document.getElementById('new-item-name');
+  const descInput = document.getElementById('new-item-desc');
+  const priceInput = document.getElementById('new-item-price');
+  const name = nameInput.value.trim();
+  if (!name) { showToast('Enter an item name first.'); return; }
+  const price = parseFloat(priceInput.value);
+  if (isNaN(price) || price < 0) { showToast('Enter a valid price of $0 or more.'); return; }
+  addonsCatalog.push({ id: 'item_' + Date.now(), name, desc: descInput.value.trim() || 'Custom cut selection', price, count: 0, inStock: true, maxCount: 5 });
+  nameInput.value = ''; descInput.value = ''; priceInput.value = '';
+  renderAdminControls();
+  await saveConfig();
+  showToast(`${name} added to the menu.`);
+}
+
+async function updatePackField(key, field, value) {
+  const box = boxOptions[key];
+  if (!box) return;
+  if (field === 'price') {
+    const price = parseFloat(value);
+    if (isNaN(price) || price < 0) { showToast('Enter a valid price.'); renderPacksAdmin(); return; }
+    box.price = price;
+  } else { box[field] = value.trim() || box[field]; }
+  await saveConfig();
+  showToast('Pack updated.');
+}
+
+async function updatePackItemField(key, idx, field, value) {
+  const item = boxOptions[key].included[idx];
+  if (!item) return;
+  if (field === 'qty') { const qty = parseInt(value, 10); item.qty = isNaN(qty) || qty < 1 ? 1 : qty; }
+  else { item[field] = value.trim() || item[field]; }
+  await saveConfig();
+}
+
+async function addPackItem(key) {
+  const nameInput = document.getElementById(`pack-add-name-${key}`);
+  const qtyInput = document.getElementById(`pack-add-qty-${key}`);
+  const noteInput = document.getElementById(`pack-add-note-${key}`);
+  const name = nameInput.value.trim();
+  if (!name) { showToast('Enter a cut name first.'); return; }
+  const qty = parseInt(qtyInput.value, 10) || 1;
+  boxOptions[key].included.push({ name, qty, note: noteInput.value.trim() || '' });
+  renderPacksAdmin();
+  await saveConfig();
+  showToast(`${name} added to ${boxOptions[key].name}.`);
+}
+
+async function removePackItem(key, idx) {
+  boxOptions[key].included.splice(idx, 1);
+  renderPacksAdmin();
+  await saveConfig();
+}
+
+async function updateSlotCapacity(slotId, value) {
+  const slot = pickupSlots.find(s => s.id === slotId);
+  if (!slot) return;
+  const cap = parseInt(value, 10);
+  slot.capacity = isNaN(cap) || cap < 0 ? slot.booked : Math.max(cap, slot.booked);
+  renderSlotsAdmin();
+  await saveConfig();
+}
+
+async function resetSlotBookings() {
+  pickupSlots.forEach(s => s.booked = 0);
+  renderSlotsAdmin();
+  await saveConfig();
+  showToast('Slot bookings reset for the next cycle.');
+}
+
+async function setOrderStatus(orderId, status) {
+  const order = ordersQueue.find(o => o.id === orderId);
+  if (!order) return;
+  order.status = status;
+  renderOrdersQueue();
+  await saveOrders();
+}
+async function completeOrder(orderId) {
+  ordersQueue = ordersQueue.filter(o => o.id !== orderId);
+  renderOrdersQueue();
+  await saveOrders();
+}
+async function deleteOrder(orderId) {
+  ordersQueue = ordersQueue.filter(o => o.id !== orderId);
+  renderOrdersQueue();
+  await saveOrders();
+}
+
+function resizeImageFile(file, maxWidth) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleBannerUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Please choose an image file.'); input.value = ''; return; }
+  const statusEl = document.getElementById('banner-upload-status');
+  statusEl.innerText = 'Uploading…';
+  try {
+    const dataUrl = await resizeImageFile(file, 1000);
+    shopProfile.bannerUrl = dataUrl;
+    document.getElementById('banner-preview').src = dataUrl;
+    document.getElementById('edit-shop-banner').value = '';
+    applyStoreBranding();
+    await saveConfig();
+    statusEl.innerText = 'Uploaded — now live on the customer view.';
+    showToast('Banner uploaded.');
+  } catch (e) {
+    statusEl.innerText = 'JPG or PNG, resized automatically';
+    showToast('Could not process that image — try a different file.');
+  } finally { input.value = ''; }
+}
+
+async function saveStoreBranding() {
+  shopProfile.name = document.getElementById('edit-shop-name').value.trim() || shopProfile.name;
+  shopProfile.logoText = document.getElementById('edit-shop-logo').value.trim() || shopProfile.logoText;
+  shopProfile.subtitle = document.getElementById('edit-shop-sub').value.trim() || shopProfile.subtitle;
+  const urlFieldValue = document.getElementById('edit-shop-banner').value.trim();
+  if (urlFieldValue) shopProfile.bannerUrl = urlFieldValue;
+  shopProfile.address = document.getElementById('edit-shop-address').value.trim();
+  shopProfile.phone = document.getElementById('edit-shop-phone').value.trim();
+  shopProfile.hours = document.getElementById('edit-shop-hours').value.trim();
+  shopProfile.policyText = document.getElementById('edit-shop-policy').value.trim();
+  applyStoreBranding();
+  document.getElementById('banner-preview').src = shopProfile.bannerUrl;
+  await saveConfig();
+  showToast('Branding updated across the live app.');
+}
+
+async function togglePauseOrders(checkbox) {
+  shopProfile.ordersPaused = !checkbox.checked;
+  await saveConfig();
+  showToast(shopProfile.ordersPaused ? 'Online pre-orders paused.' : 'Online pre-orders re-enabled.');
+}
+
+function exportAllData() {
+  const backup = { shopProfile, boxOptions, addonsCatalog, pickupSlots, ordersQueue, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${shopProfile.name.replace(/\s+/g, '-').toLowerCase()}-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Backup downloaded.');
+}
+
+(async function init() {
+  await loadState();
+  applyStoreBranding();
+  document.getElementById('edit-shop-name').value = shopProfile.name;
+  document.getElementById('edit-shop-logo').value = shopProfile.logoText;
+  document.getElementById('edit-shop-sub').value = shopProfile.subtitle;
+  document.getElementById('edit-shop-banner').value = shopProfile.bannerUrl.startsWith('data:') ? '' : shopProfile.bannerUrl;
+  document.getElementById('banner-preview').src = shopProfile.bannerUrl;
+  document.getElementById('edit-shop-address').value = shopProfile.address || '';
+  document.getElementById('edit-shop-phone').value = shopProfile.phone || '';
+  document.getElementById('edit-shop-hours').value = shopProfile.hours || '';
+  document.getElementById('edit-shop-policy').value = shopProfile.policyText || '';
+  document.getElementById('pause-toggle').checked = !shopProfile.ordersPaused;
+})();
+</script>
+</body>
+</html>
