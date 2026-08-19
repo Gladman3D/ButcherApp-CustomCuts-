@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Butcher Pre-Order Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1E7D3;
+    --paper-dim:#E7D9BB;
+    --card:#FBF6EA;
+    --ink:#2A211A;
+    --ink-soft:#6B5D4D;
+    --oxblood:#7A2A2A;
+    --oxblood-bright:#9C3A3A;
+    --mustard:#B4842A;
+    --sage:#54724F;
+    --line:#CBB68F;
+    --danger:#A83232;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:18px 14px 40px;
+  }
+  .container{
+    width:100%;
+    max-width:600px;
+    background:var(--card);
+    border-radius:4px;
+    border:1px solid var(--line);
+    overflow:hidden;
+    box-shadow:0 8px 24px rgba(42,33,26,0.14);
+    margin-bottom:20px;
+    position:relative;
+  }
+  .container::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:5px;
+    background:repeating-linear-gradient(-45deg, var(--oxblood) 0 10px, var(--mustard) 10px 20px);
+    opacity:0.85;
+  }
+
+  .banner{
+    position:relative;
+    height:128px;
+    margin-top:5px;
+    background:linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80') center/cover;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    padding:14px 18px;
+  }
+  .profile-area{display:flex; align-items:center; gap:12px;}
+  .logo{
+    width:52px; height:52px; border-radius:50%;
+    background:var(--oxblood); border:3px solid var(--card);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald',sans-serif; font-weight:600; letter-spacing:0.5px;
+    color:#fff; font-size:1rem; box-shadow:0 3px 8px rgba(0,0,0,0.4);
+  }
+  .details h1{font-family:'Oswald',sans-serif; font-size:1.15rem; font-weight:600; color:#fff; letter-spacing:0.3px;}
+  .details p{font-size:0.76rem; color:#E7D9BB; margin-top:2px;}
+  .mode-btn{
+    background:rgba(251,246,234,0.92); border:1px solid var(--line); color:var(--ink);
+    padding:6px 12px; border-radius:3px; font-size:0.72rem; font-weight:600;
+    cursor:pointer; font-family:'Inter',sans-serif; letter-spacing:0.2px;
+  }
+  .mode-btn:hover{background:#fff;}
+
+  .step{padding:22px 20px;}
+  .section-title{
+    font-family:'Oswald',sans-serif; font-size:1.02rem; font-weight:600;
+    margin-bottom:12px; color:var(--ink); display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .section-title small{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; color:var(--ink-soft); font-weight:500;}
+
+  .grid-options{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px;}
+  .card-option{
+    background:var(--paper); border:2px solid var(--line); border-radius:4px;
+    padding:14px; cursor:pointer; text-align:left; transition:border-color .15s;
+  }
+  .card-option:hover{border-color:var(--oxblood-bright);}
+  .card-option.selected{border-color:var(--oxblood); background:#F4E4DC;}
+  .card-option h3{font-family:'Oswald',sans-serif; font-size:0.92rem; font-weight:600;}
+  .card-option p{font-size:0.76rem; color:var(--ink-soft); margin-top:3px;}
+
+  .included-list{
+    border:1px dashed var(--line); border-radius:4px; padding:10px 14px; margin-bottom:20px;
+    background:repeating-linear-gradient(135deg, rgba(180,132,42,0.05) 0 8px, transparent 8px 16px);
+  }
+  .included-row{
+    display:flex; justify-content:space-between; font-size:0.83rem; padding:5px 0;
+    border-bottom:1px dashed var(--line);
+  }
+  .included-row:last-child{border-bottom:none;}
+  .included-row span:first-child{color:var(--ink);}
+  .included-row span:last-child{font-family:'IBM Plex Mono',monospace; color:var(--sage); font-size:0.76rem;}
+
+  .item-list{display:flex; flex-direction:column; gap:9px; margin-bottom:20px;}
+  .item-row{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--paper); padding:11px 14px; border-radius:4px; border:1px solid var(--line);
+  }
+  .item-row.out-of-stock{opacity:0.42; border-style:dashed;}
+  .item-info h4{font-size:0.88rem; font-weight:600;}
+  .item-info span{font-size:0.74rem; color:var(--ink-soft);}
+  .item-right{display:flex; align-items:center; gap:12px;}
+  .item-price{font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:var(--mustard); font-weight:600;}
+  .counter-controls{display:flex; align-items:center; gap:9px;}
+  .counter-btn{
+    background:var(--ink); color:#fff; border:none; width:24px; height:24px; border-radius:3px;
+    font-weight:600; cursor:pointer;
+  }
+  .counter-btn:hover{background:var(--oxblood);}
+  .counter-btn:disabled{opacity:0.3; cursor:not-allowed;}
+  .counter-value{font-family:'IBM Plex Mono',monospace; font-size:0.85rem; font-weight:600; min-width:14px; text-align:center;}
+
+  .form-group{margin-bottom:18px;}
+  .form-group label{display:block; font-size:0.8rem; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
+  textarea,select,input[type=text],input[type=password],input[type=number]{
+    width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px;
+    padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;
+  }
+  textarea:focus,select:focus,input:focus{border-color:var(--oxblood);}
+  .slot-note{font-size:0.72rem; color:var(--ink-soft); margin-top:5px;}
+
+  .summary-box{
+    background:var(--ink); color:var(--paper); border-radius:4px; padding:16px; margin-bottom:18px;
+  }
+  .summary-row{display:flex; justify-content:space-between; margin-bottom:7px; font-size:0.83rem; color:#C9B899;}
+  .summary-row.total{
+    font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.05rem; color:#fff;
+    border-top:1px dashed #5A4C3D; padding-top:10px; margin-top:6px;
+  }
+
+  .btn-primary{
+    display:block; width:100%; background:var(--oxblood); color:#fff; border:none;
+    padding:13px; border-radius:4px; font-size:0.9rem; font-weight:600; cursor:pointer;
+    font-family:'Inter',sans-serif; letter-spacing:0.2px;
+  }
+  .btn-primary:hover{background:var(--oxblood-bright);}
+  .btn-primary:disabled{background:var(--ink-soft); cursor:not-allowed;}
+  .btn-secondary{
+    display:block; width:100%; background:transparent; color:var(--ink-soft); border:1px solid var(--line);
+    padding:11px; border-radius:4px; font-size:0.82rem; font-weight:600; cursor:pointer; margin-top:9px;
+  }
+  .btn-secondary:hover{color:var(--ink); border-color:var(--ink-soft);}
+  .btn-small{
+    background:var(--paper); border:1px solid var(--line); color:var(--ink); font-size:0.72rem;
+    font-weight:600; padding:6px 10px; border-radius:3px; cursor:pointer;
+  }
+  .btn-small:hover{border-color:var(--oxblood);}
+  .btn-small.danger{color:var(--danger); border-color:var(--danger);}
+
+  .success-screen{display:none; text-align:center; padding:44px 24px;}
+  .stamp{
+    display:inline-block; border:3px solid var(--sage); color:var(--sage); font-family:'Oswald',sans-serif;
+    font-weight:700; font-size:0.95rem; padding:8px 18px; transform:rotate(-4deg); border-radius:4px;
+    margin-bottom:16px; letter-spacing:1px;
+  }
+  .success-screen h2{font-family:'Oswald',sans-serif; font-size:1.25rem; margin-bottom:10px;}
+  .success-screen p{color:var(--ink-soft); font-size:0.86rem; line-height:1.55;}
+  .ticket-id{font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:var(--mustard); margin-top:10px;}
+
+  #pin-view{display:none; text-align:center; padding:40px 20px;}
+  .pin-box{max-width:260px; margin:0 auto;}
+  .pin-input{text-align:center; font-size:1.4rem; letter-spacing:8px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
+
+  #admin-panel{display:none;}
+  .badge-notice{
+    background:#EAEFE7; color:var(--sage); font-size:0.74rem; padding:5px 10px; border-radius:4px;
+    display:inline-block; margin-bottom:14px; font-weight:600; font-family:'IBM Plex Mono',monospace;
+  }
+  .admin-tabs{display:flex; gap:5px; margin-bottom:16px; flex-wrap:wrap;}
+  .admin-tab{
+    flex:1; min-width:64px; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft);
+    padding:8px 4px; border-radius:4px; font-size:0.68rem; font-weight:600; cursor:pointer; text-align:center;
+  }
+  .admin-tab.active{background:var(--oxblood); color:#fff; border-color:var(--oxblood);}
+  .admin-section{background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:15px; margin-bottom:14px;}
+  .admin-section h3{font-family:'Oswald',sans-serif; font-size:0.9rem; margin-bottom:10px; font-weight:600;}
+  .admin-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
+  .admin-row:last-child{border-bottom:none;}
+
+  .toggle-switch{position:relative; display:inline-block; width:40px; height:22px;}
+  .toggle-switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; cursor:pointer; inset:0; background:var(--line); transition:.2s; border-radius:22px;}
+  .slider:before{position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%;}
+  input:checked + .slider{background:var(--sage);}
+  input:checked + .slider:before{transform:translateX(18px);}
+
+  .add-item-form{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+
+  .order-card{background:var(--card); border:1px solid var(--line); border-radius:4px; padding:13px; margin-bottom:11px;}
+  .order-card-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; border-bottom:1px dashed var(--line); padding-bottom:6px;}
+  .order-card-header h4{font-family:'IBM Plex Mono',monospace; font-size:0.85rem;}
+  .status-pill{font-size:0.68rem; font-weight:700; padding:3px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:0.3px;}
+  .status-new{background:#F4E4DC; color:var(--oxblood);}
+  .status-preparing{background:#F6EBD2; color:var(--mustard);}
+  .status-ready{background:#E4EEE0; color:var(--sage);}
+  .order-line{font-size:0.79rem; color:var(--ink-soft); margin-bottom:3px;}
+  .order-notes{background:#F4E4DC; border-left:3px solid var(--oxblood); padding:6px 10px; font-size:0.77rem; color:var(--oxblood); margin-top:7px; border-radius:0 3px 3px 0;}
+  .order-actions{display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;}
+
+  .slot-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:0.8rem;}
+  .slot-row:last-child{border-bottom:none;}
+  .slot-cap-input{width:56px; padding:5px; text-align:center;}
+  .empty-state{text-align:center; padding:26px 10px; color:var(--ink-soft); font-size:0.83rem;}
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper);
+    padding:10px 18px; border-radius:4px; font-size:0.82rem; opacity:0; pointer-events:none; transition:opacity .25s;
+    z-index:50; max-width:90vw; text-align:center;
+  }
+  .toast.show{opacity:1;}
+
+  .pack-edit-card{background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:14px; margin-bottom:14px;}
+  .pack-edit-card h3{font-family:'Oswald',sans-serif; font-size:0.95rem; margin-bottom:12px;}
+  .pack-two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .pack-included-row{display:grid; grid-template-columns:1fr 44px 1fr 32px; gap:6px; align-items:center; margin-bottom:7px;}
+  .pack-included-row input{padding:8px; font-size:0.78rem;}
+  .pack-remove-btn{
+    background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:3px;
+    width:100%; height:34px; cursor:pointer; font-weight:700;
+  }
+  .pack-add-row{display:grid; grid-template-columns:1fr 44px 1fr auto; gap:6px; align-items:center; margin:10px 0 4px;}
+  .pack-add-row input{padding:8px; font-size:0.78rem;}
+  .pack-add-btn{
+    background:var(--ink); color:#fff; border:none; border-radius:3px; padding:0 12px; height:34px; cursor:pointer; font-size:0.78rem; font-weight:600;
+  }
+  .field-label{font-size:0.7rem; color:var(--ink-soft); margin-bottom:4px; display:block;}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="banner" id="banner-bg">
+    <div class="profile-area">
+      <div class="logo" id="header-logo">CPM</div>
+      <div class="details">
+        <h1 id="header-shop-name">Central Prime Meats</h1>
+        <p id="header-shop-sub">Local Quality Butcher • Est. 1994</p>
+      </div>
+    </div>
+    <button class="mode-btn" onclick="requestStaffAccess()" id="mode-btn">Staff Portal</button>
+  </div>
+
+  <!-- CUSTOMER VIEW -->
+  <div id="customer-view" class="step">
+    <div class="form-group">
+      <label for="customer-name">Your full name</label>
+      <input type="text" id="customer-name" placeholder="e.g. Sarah Jenkins" value="Sarah Jenkins">
+    </div>
+
+    <div class="section-title">1. Choose a pack <small>base tier</small></div>
+    <div class="grid-options">
+      <div id="card-family" class="card-option selected" onclick="selectBoxSize('family')">
+        <h3 id="card-family-name">Family Pack</h3>
+        <p id="card-family-price">$65 · balanced cuts</p>
+      </div>
+      <div id="card-bbq" class="card-option" onclick="selectBoxSize('bbq')">
+        <h3 id="card-bbq-name">BBQ Stacker</h3>
+        <p id="card-bbq-price">$95 · heavy steak bundle</p>
+      </div>
+    </div>
+
+    <div class="section-title">Included in your box</div>
+    <div class="included-list" id="included-list"></div>
+
+    <div class="section-title">2. Add extras <small>optional, priced per unit</small></div>
+    <div class="item-list" id="addon-item-list"></div>
+
+    <div class="form-group">
+      <label for="cutting-notes">Special cutting / prep notes</label>
+      <textarea id="cutting-notes" rows="2" placeholder="e.g. Cut steaks 1-inch thick, vacuum seal in packs of two..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="pickup-slot">Collection time slot</label>
+      <select id="pickup-slot" onchange="updatePickupDisplay(this)"></select>
+      <p class="slot-note" id="slot-note"></p>
+    </div>
+
+    <div class="summary-box">
+      <div class="summary-row"><span>Selected pack</span><span id="summary-box-name" style="color:#fff;">Family Pack</span></div>
+      <div class="summary-row"><span>Pickup window</span><span id="summary-pickup" style="color:#fff;"></span></div>
+      <div class="summary-row total"><span>Total</span><span id="summary-total">$65.00</span></div>
+    </div>
+
+    <button class="btn-primary" onclick="submitOrder()" id="submit-btn">Place pre-order</button>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="success-screen" class="success-screen step">
+    <div class="stamp">ORDER RECEIVED</div>
+    <h2>Sent to the shop</h2>
+    <p>Your custom pack, cutting notes and pickup slot are logged on the prep sheet.</p>
+    <p class="ticket-id" id="ticket-id"></p>
+    <button class="btn-primary" style="margin-top:22px;" onclick="resetApp()">Build another pack</button>
+  </div>
+
+  <!-- PIN -->
+  <div id="pin-view" class="step">
+    <div class="pin-box">
+      <h3 style="font-family:'Oswald',sans-serif; font-size:1.05rem; margin-bottom:6px;">Staff access</h3>
+      <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:18px;">Enter the store PIN to open the prep dashboard.</p>
+      <div class="form-group">
+        <input type="password" id="staff-pin-input" class="pin-input" maxlength="4" placeholder="••••">
+        <span id="pin-error" style="color:var(--danger); font-size:0.75rem; display:block; margin-top:6px;"></span>
+      </div>
+      <button class="btn-primary" onclick="verifyStaffPin()">Unlock</button>
+      <button class="btn-secondary" onclick="cancelStaffLogin()">Back to shop</button>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin-panel" class="step">
+    <div class="badge-notice">● Prep dashboard live</div>
+    <div class="admin-tabs">
+      <div class="admin-tab active" id="tab-orders" onclick="switchAdminTab('orders')">Orders <span id="order-count-badge">0</span></div>
+      <div class="admin-tab" id="tab-packs" onclick="switchAdminTab('packs')">Packs</div>
+      <div class="admin-tab" id="tab-catalog" onclick="switchAdminTab('catalog')">Extras</div>
+      <div class="admin-tab" id="tab-slots" onclick="switchAdminTab('slots')">Slots</div>
+      <div class="admin-tab" id="tab-branding" onclick="switchAdminTab('branding')">Branding</div>
+    </div>
+
+    <div id="admin-orders-content">
+      <div class="section-title">Live order queue <small>prep sheet</small></div>
+      <div id="incoming-orders-list"></div>
+    </div>
+
+    <div id="admin-packs-content" style="display:none;">
+      <div class="section-title">Edit packs <small>changes apply live</small></div>
+      <div id="pack-edit-list"></div>
+    </div>
+
+    <div id="admin-catalog-content" style="display:none;">
+      <div class="section-title">Extras catalog <small>live toggle</small></div>
+      <div class="admin-section" id="admin-item-controls"></div>
+      <div class="admin-section">
+        <h3>Add a new extra</h3>
+        <div class="add-item-form">
+          <input type="text" id="new-item-name" placeholder="Item name (e.g. Wagyu Rump)">
+          <input type="text" id="new-item-desc" placeholder="Description (e.g. 500g dry-aged)">
+          <input type="number" id="new-item-price" min="0" step="0.5" placeholder="Price per unit ($)">
+          <button class="btn-primary" onclick="addNewItem()">Add to menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-slots-content" style="display:none;">
+      <div class="section-title">Pickup slot capacity <small>bookings reset per cycle</small></div>
+      <div class="admin-section" id="admin-slots-list"></div>
+      <button class="btn-secondary" onclick="resetSlotBookings()">Reset all bookings to 0</button>
+    </div>
+
+    <div id="admin-branding-content" style="display:none;">
+      <div class="section-title">Shop identity <small>multi-tenant</small></div>
+      <div class="admin-section">
+        <div class="form-group"><label>Shop name</label><input type="text" id="edit-shop-name" value="Central Prime Meats"></div>
+        <div class="form-group"><label>Logo initials</label><input type="text" id="edit-shop-logo" value="CPM" maxlength="4"></div>
+        <div class="form-group"><label>Tagline</label><input type="text" id="edit-shop-sub" value="Local Quality Butcher • Est. 1994"></div>
+
+        <div class="form-group">
+          <label>Banner image</label>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+            <img id="banner-preview" src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80" alt="Current banner" style="width:84px; height:52px; object-fit:cover; border-radius:4px; border:1px solid var(--line);">
+            <div style="flex:1;">
+              <input type="file" id="banner-upload-input" accept="image/*" onchange="handleBannerUpload(this)" style="padding:8px; font-size:0.78rem;">
+              <span id="banner-upload-status" style="font-size:0.72rem; color:var(--ink-soft); display:block; margin-top:4px;">JPG or PNG, resized automatically</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <span class="field-label">Or paste an image URL instead</span>
+          <input type="text" id="edit-shop-banner" value="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80">
+        </div>
+        <button class="btn-primary" onclick="saveStoreBranding()">Save branding</button>
+      </div>
+    </div>
+
+    <button class="btn-secondary" style="margin-top:6px;" onclick="staffLogout()">Lock portal & exit</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY_CONFIG = 'shop-config';
+const STORAGE_KEY_ORDERS = 'orders';
+
+let shopProfile = {
+  name: "Central Prime Meats",
+  logoText: "CPM",
+  subtitle: "Local Quality Butcher • Est. 1994",
+  bannerUrl: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80"
+};
+
+let boxOptions = {
+  family: { price: 65, name: "Family Pack", tagline: "balanced cuts", included: [
+    { name: "Ribeye Fillet", qty: 1, note: "2x thick-cut steaks (~500g)" },
+    { name: "Premium Sausages", qty: 1, note: "1kg butcher's choice thick beef" },
+    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
+  ]},
+  bbq: { price: 95, name: "BBQ Stacker", tagline: "heavy steak bundle", included: [
+    { name: "Ribeye Fillet", qty: 2, note: "2x thick-cut steaks (~500g) each" },
+    { name: "Premium Sausages", qty: 2, note: "1kg butcher's choice thick beef each" },
+    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
+  ]}
+};
+
+let addonsCatalog = [
+  { id: 'brisket', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5 },
+  { id: 'bacon', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
+];
+
+let pickupSlots = [
+  { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 },
+  { id: 'fri2', label: 'Friday, 3:30 PM – 4:00 PM', capacity: 6, booked: 0 },
+  { id: 'fri3', label: 'Friday, 4:00 PM – 4:30 PM', capacity: 4, booked: 3 },
+  { id: 'sat1', label: 'Saturday, 9:00 AM – 9:30 AM', capacity: 8, booked: 0 }
+];
+
+let ordersQueue = [];
+let currentBoxType = 'family';
+let isStaffLoggedIn = false;
+const STAFF_PIN = '1994';
+
+// ---------- persistence ----------
+const hasStorage = typeof window.storage !== 'undefined';
+
+async function loadState() {
+  if (!hasStorage) return;
+  try {
+    const cfg = await window.storage.get(STORAGE_KEY_CONFIG, true);
+    if (cfg && cfg.value) {
+      const parsed = JSON.parse(cfg.value);
+      if (parsed.shopProfile) shopProfile = parsed.shopProfile;
+      if (parsed.boxOptions) boxOptions = parsed.boxOptions;
+      if (parsed.addonsCatalog) addonsCatalog = parsed.addonsCatalog;
+      if (parsed.pickupSlots) pickupSlots = parsed.pickupSlots;
+    }
+  } catch (e) { /* no saved config yet, use defaults */ }
+
+  try {
+    const ord = await window.storage.get(STORAGE_KEY_ORDERS, true);
+    if (ord && ord.value) ordersQueue = JSON.parse(ord.value);
+  } catch (e) { /* no saved orders yet */ }
+}
+
+async function saveConfig() {
+  if (!hasStorage) return;
+  try {
+    await window.storage.set(STORAGE_KEY_CONFIG, JSON.stringify({ shopProfile, boxOptions, addonsCatalog, pickupSlots }), true);
+  } catch (e) { showToast('Could not save changes — check connection'); }
+}
+
+async function saveOrders() {
+  if (!hasStorage) return;
+  try {
+    await window.storage.set(STORAGE_KEY_ORDERS, JSON.stringify(ordersQueue), true);
+  } catch (e) { showToast('Could not save order — check connection'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ---------- rendering: customer ----------
+function applyStoreBranding() {
+  document.getElementById('header-shop-name').innerText = shopProfile.name;
+  document.getElementById('header-logo').innerText = shopProfile.logoText;
+  document.getElementById('header-shop-sub').innerText = shopProfile.subtitle;
+  document.getElementById('banner-bg').style.backgroundImage =
+    `linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('${shopProfile.bannerUrl}')`;
+}
+
+function renderPackCards() {
+  document.getElementById('card-family-name').innerText = boxOptions.family.name;
+  document.getElementById('card-family-price').innerText = `$${boxOptions.family.price} · ${boxOptions.family.tagline}`;
+  document.getElementById('card-bbq-name').innerText = boxOptions.bbq.name;
+  document.getElementById('card-bbq-price').innerText = `$${boxOptions.bbq.price} · ${boxOptions.bbq.tagline}`;
+}
+
+function renderIncluded() {
+  const box = boxOptions[currentBoxType];
+  const el = document.getElementById('included-list');
+  if (box.included.length === 0) {
+    el.innerHTML = `<div class="empty-state">No cuts assigned to this pack yet.</div>`;
+    return;
+  }
+  el.innerHTML = box.included.map(i =>
+    `<div class="included-row"><span>${i.qty}x ${i.name} — ${i.note}</span><span>included</span></div>`
+  ).join('');
+}
+
+function renderAddons() {
+  const listEl = document.getElementById('addon-item-list');
+  if (addonsCatalog.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">No extras available right now.</div>`;
+    calculateTotal();
+    return;
+  }
+  listEl.innerHTML = addonsCatalog.map(item => {
+    if (!item.inStock && item.count > 0) item.count = 0;
+    const atMax = item.count >= (item.maxCount || 99);
+    return `
+      <div class="item-row ${item.inStock ? '' : 'out-of-stock'}">
+        <div class="item-info">
+          <h4>${item.name} ${!item.inStock ? '<span style="color:var(--danger);">(out of stock)</span>' : ''}</h4>
+          <span>${item.desc}</span>
+        </div>
+        <div class="item-right">
+          <span class="item-price">+$${item.price}</span>
+          <div class="counter-controls">
+            <button class="counter-btn" onclick="updateCount('${item.id}', -1)" ${!item.inStock || item.count===0 ? 'disabled' : ''}>-</button>
+            <span class="counter-value" id="count-${item.id}">${item.count}</span>
+            <button class="counter-btn" onclick="updateCount('${item.id}', 1)" ${!item.inStock || atMax ? 'disabled' : ''}>+</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  calculateTotal();
+}
+
+function renderPickupOptions() {
+  const sel = document.getElementById('pickup-slot');
+  sel.innerHTML = pickupSlots.map(s => {
+    const remaining = s.capacity - s.booked;
+    const full = remaining <= 0;
+    let tag = '';
+    if (full) tag = ' — Full';
+    else if (remaining <= 2) tag = ` — ${remaining} left`;
+    return `<option value="${s.id}" ${full ? 'disabled' : ''}>${s.label}${tag}</option>`;
+  }).join('');
+  updatePickupDisplay(sel);
+}
+
+function updatePickupDisplay(selectEl) {
+  const slot = pickupSlots.find(s => s.id === selectEl.value);
+  if (!slot) return;
+  document.getElementById('summary-pickup').innerText = slot.label;
+  const remaining = slot.capacity - slot.booked;
+  document.getElementById('slot-note').innerText = remaining <= 2 && remaining > 0
+    ? `Only ${remaining} spot${remaining === 1 ? '' : 's'} left in this window.`
+    : '';
+}
+
+// ---------- rendering: admin ----------
+function renderAdminControls() {
+  const adminEl = document.getElementById('admin-item-controls');
+  if (addonsCatalog.length === 0) {
+    adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet — add one below.</div>`;
+    return;
+  }
+  adminEl.innerHTML = addonsCatalog.map(item => `
+    <div class="admin-row">
+      <div>
+        <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem;">$${item.price}</span></h4>
+        <span style="font-size:0.74rem; color:var(--ink-soft);">${item.desc}</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:0.72rem; color:${item.inStock ? 'var(--sage)' : 'var(--danger)'};">${item.inStock ? 'Active' : 'Paused'}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${item.inStock ? 'checked' : ''} onchange="toggleStock('${item.id}')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>`).join('');
+}
+
+function renderSlotsAdmin() {
+  const el = document.getElementById('admin-slots-list');
+  el.innerHTML = pickupSlots.map(s => `
+    <div class="slot-row">
+      <span>${s.label}</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span style="font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:0.75rem;">${s.booked} booked /</span>
+        <input type="number" min="0" class="slot-cap-input" value="${s.capacity}" onchange="updateSlotCapacity('${s.id}', this.value)">
+      </span>
+    </div>`).join('');
+}
+
+function renderOrdersQueue() {
+  const queueEl = document.getElementById('incoming-orders-list');
+  document.getElementById('order-count-badge').innerText = ordersQueue.length;
+
+  if (ordersQueue.length === 0) {
+    queueEl.innerHTML = `<div class="empty-state">No active orders in the queue.</div>`;
+    return;
+  }
+
+  queueEl.innerHTML = ordersQueue.map(order => {
+    const statusClass = order.status === 'Preparing' ? 'status-preparing' : order.status === 'Ready' ? 'status-ready' : 'status-new';
+    return `
+    <div class="order-card">
+      <div class="order-card-header">
+        <h4>#${order.id} — ${order.customer}</h4>
+        <span class="status-pill ${statusClass}">${order.status}</span>
+      </div>
+      <div class="order-line"><strong>Pack:</strong> ${order.boxName} (${order.total})</div>
+      <div class="order-line"><strong>Extras:</strong> ${order.extras || 'None'}</div>
+      <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
+      ${order.notes ? `<div class="order-notes"><strong>Note:</strong> ${order.notes}</div>` : ''}
+      <div class="order-actions">
+        ${order.status === 'New' ? `<button class="btn-small" onclick="setOrderStatus(${order.id},'Preparing')">Start prepping</button>` : ''}
+        ${order.status === 'Preparing' ? `<button class="btn-small" onclick="setOrderStatus(${order.id},'Ready')">Mark ready</button>` : ''}
+        ${order.status === 'Ready' ? `<button class="btn-small" onclick="completeOrder(${order.id})">Picked up</button>` : ''}
+        <button class="btn-small danger" onclick="deleteOrder(${order.id})">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPacksAdmin() {
+  const el = document.getElementById('pack-edit-list');
+  el.innerHTML = Object.keys(boxOptions).map(key => {
+    const box = boxOptions[key];
+    const includedRows = box.included.map((item, idx) => `
+      <div class="pack-included-row">
+        <input type="text" value="${item.name}" onchange="updatePackItemField('${key}', ${idx}, 'name', this.value)" placeholder="Cut name">
+        <input type="number" min="1" value="${item.qty}" onchange="updatePackItemField('${key}', ${idx}, 'qty', this.value)">
+        <input type="text" value="${item.note}" onchange="updatePackItemField('${key}', ${idx}, 'note', this.value)" placeholder="Detail (e.g. 500g)">
+        <button class="pack-remove-btn" onclick="removePackItem('${key}', ${idx})" title="Remove">×</button>
+      </div>`).join('');
+
+    return `
+      <div class="pack-edit-card">
+        <h3>${box.name}</h3>
+        <div class="pack-two-col">
+          <div class="form-group" style="margin-bottom:10px;">
+            <span class="field-label">Pack name</span>
+            <input type="text" value="${box.name}" onchange="updatePackField('${key}', 'name', this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <span class="field-label">Base price ($)</span>
+            <input type="number" min="0" step="1" value="${box.price}" onchange="updatePackField('${key}', 'price', this.value)">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:6px;">
+          <span class="field-label">Tagline (shown on the pack card)</span>
+          <input type="text" value="${box.tagline}" onchange="updatePackField('${key}', 'tagline', this.value)">
+        </div>
+        <span class="field-label" style="margin-top:8px; display:block;">Included cuts</span>
+        <div id="pack-items-${key}">${includedRows || '<div class="empty-state">No cuts yet — add one below.</div>'}</div>
+        <div class="pack-add-row">
+          <input type="text" id="pack-add-name-${key}" placeholder="Cut name">
+          <input type="number" id="pack-add-qty-${key}" min="1" value="1">
+          <input type="text" id="pack-add-note-${key}" placeholder="Detail">
+          <button class="pack-add-btn" onclick="addPackItem('${key}')">Add</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ---------- customer actions ----------
+function selectBoxSize(type) {
+  currentBoxType = type;
+  document.getElementById('card-family').classList.toggle('selected', type === 'family');
+  document.getElementById('card-bbq').classList.toggle('selected', type === 'bbq');
+  document.getElementById('summary-box-name').innerText = boxOptions[type].name;
+  renderIncluded();
+  calculateTotal();
+}
+
+function updateCount(itemId, change) {
+  const item = addonsCatalog.find(i => i.id === itemId);
+  if (!item || !item.inStock) return;
+  const next = item.count + change;
+  if (next < 0 || next > (item.maxCount || 99)) return;
+  item.count = next;
+  document.getElementById(`count-${itemId}`).innerText = item.count;
+  document.querySelectorAll(`[onclick="updateCount('${itemId}', 1)"]`).forEach(b => b.disabled = item.count >= (item.maxCount || 99));
+  document.querySelectorAll(`[onclick="updateCount('${itemId}', -1)"]`).forEach(b => b.disabled = item.count <= 0);
+  calculateTotal();
+}
+
+function calculateTotal() {
+  const base = boxOptions[currentBoxType].price;
+  const extras = addonsCatalog.reduce((sum, i) => sum + i.count * i.price, 0);
+  const total = base + extras;
+  document.getElementById('summary-total').innerText = `$${total.toFixed(2)}`;
+  return total;
+}
+
+async function submitOrder() {
+  const btn = document.getElementById('submit-btn');
+  const customerName = document.getElementById('customer-name').value.trim() || 'Anonymous customer';
+  const notes = document.getElementById('cutting-notes').value.trim();
+  const slotId = document.getElementById('pickup-slot').value;
+  const slot = pickupSlots.find(s => s.id === slotId);
+
+  if (!slot || slot.booked >= slot.capacity) {
+    showToast('That pickup slot just filled up — pick another.');
+    renderPickupOptions();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = 'Placing order…';
+
+  const total = calculateTotal();
+  const extrasSummary = addonsCatalog.filter(i => i.count > 0).map(i => `${i.count}x ${i.name}`).join(', ');
+
+  slot.booked += 1;
+
+  const order = {
+    id: Math.floor(1000 + Math.random() * 9000),
+    customer: customerName,
+    boxName: boxOptions[currentBoxType].name,
+    extras: extrasSummary,
+    notes,
+    pickup: slot.label,
+    total: `$${total.toFixed(2)}`,
+    status: 'New'
+  };
+  ordersQueue.unshift(order);
+
+  await Promise.all([saveOrders(), saveConfig()]);
+
+  document.getElementById('ticket-id').innerText = `Order #${order.id}`;
+  document.getElementById('customer-view').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'block';
+  btn.disabled = false;
+  btn.innerText = 'Place pre-order';
+}
+
+function resetApp() {
+  document.getElementById('success-screen').style.display = 'none';
+  document.getElementById('customer-view').style.display = 'block';
+  addonsCatalog.forEach(i => i.count = 0);
+  document.getElementById('cutting-notes').value = '';
+  selectBoxSize('family');
+  renderAddons();
+  renderPickupOptions();
+}
+
+// ---------- staff / admin ----------
+function requestStaffAccess() {
+  document.getElementById('success-screen').style.display = 'none';
+  if (isStaffLoggedIn) {
+    isStaffLoggedIn = false;
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('customer-view').style.display = 'block';
+    document.getElementById('mode-btn').innerText = 'Staff Portal';
+    renderAddons();
+  } else {
+    document.getElementById('customer-view').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('pin-view').style.display = 'block';
+    document.getElementById('staff-pin-input').value = '';
+    document.getElementById('pin-error').innerText = '';
+    document.getElementById('mode-btn').innerText = 'Customer View';
+  }
+}
+
+function verifyStaffPin() {
+  const entered = document.getElementById('staff-pin-input').value;
+  if (entered === STAFF_PIN) {
+    isStaffLoggedIn = true;
+    document.getElementById('pin-view').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    document.getElementById('mode-btn').innerText = 'Exit Portal';
+    renderOrdersQueue();
+    renderPacksAdmin();
+    renderAdminControls();
+    renderSlotsAdmin();
+  } else {
+    document.getElementById('pin-error').innerText = 'Incorrect PIN — try again.';
+    document.getElementById('staff-pin-input').value = '';
+  }
+}
+
+function cancelStaffLogin() {
+  document.getElementById('pin-view').style.display = 'none';
+  document.getElementById('customer-view').style.display = 'block';
+  document.getElementById('mode-btn').innerText = 'Staff Portal';
+  renderAddons();
+}
+
+function staffLogout() {
+  isStaffLoggedIn = false;
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('customer-view').style.display = 'block';
+  document.getElementById('mode-btn').innerText = 'Staff Portal';
+  renderAddons();
+}
+
+function switchAdminTab(tab) {
+  ['orders','packs','catalog','slots','branding'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`admin-${t}-content`).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'orders') renderOrdersQueue();
+  if (tab === 'packs') renderPacksAdmin();
+  if (tab === 'catalog') renderAdminControls();
+  if (tab === 'slots') renderSlotsAdmin();
+}
+
+async function toggleStock(itemId) {
+  const item = addonsCatalog.find(i => i.id === itemId);
+  if (!item) return;
+  item.inStock = !item.inStock;
+  renderAdminControls();
+  await saveConfig();
+}
+
+async function addNewItem() {
+  const nameInput = document.getElementById('new-item-name');
+  const descInput = document.getElementById('new-item-desc');
+  const priceInput = document.getElementById('new-item-price');
+
+  const name = nameInput.value.trim();
+  if (!name) { showToast('Enter an item name first.'); return; }
+  const price = parseFloat(priceInput.value);
+  if (isNaN(price) || price < 0) { showToast('Enter a valid price of $0 or more.'); return; }
+
+  addonsCatalog.push({
+    id: 'item_' + Date.now(),
+    name,
+    desc: descInput.value.trim() || 'Custom cut selection',
+    price,
+    count: 0,
+    inStock: true,
+    maxCount: 5
+  });
+
+  nameInput.value = ''; descInput.value = ''; priceInput.value = '';
+  renderAdminControls();
+  await saveConfig();
+  showToast(`${name} added to the menu.`);
+}
+
+// ---------- pack editing ----------
+async function updatePackField(key, field, value) {
+  const box = boxOptions[key];
+  if (!box) return;
+  if (field === 'price') {
+    const price = parseFloat(value);
+    if (isNaN(price) || price < 0) { showToast('Enter a valid price.'); renderPacksAdmin(); return; }
+    box.price = price;
+  } else {
+    box[field] = value.trim() || box[field];
+  }
+  renderPackCards();
+  if (currentBoxType === key) { document.getElementById('summary-box-name').innerText = box.name; calculateTotal(); }
+  await saveConfig();
+  showToast('Pack updated.');
+}
+
+async function updatePackItemField(key, idx, field, value) {
+  const item = boxOptions[key].included[idx];
+  if (!item) return;
+  if (field === 'qty') {
+    const qty = parseInt(value, 10);
+    item.qty = isNaN(qty) || qty < 1 ? 1 : qty;
+  } else {
+    item[field] = value.trim() || item[field];
+  }
+  if (currentBoxType === key) renderIncluded();
+  await saveConfig();
+}
+
+async function addPackItem(key) {
+  const nameInput = document.getElementById(`pack-add-name-${key}`);
+  const qtyInput = document.getElementById(`pack-add-qty-${key}`);
+  const noteInput = document.getElementById(`pack-add-note-${key}`);
+
+  const name = nameInput.value.trim();
+  if (!name) { showToast('Enter a cut name first.'); return; }
+  const qty = parseInt(qtyInput.value, 10) || 1;
+
+  boxOptions[key].included.push({ name, qty, note: noteInput.value.trim() || '' });
+  renderPacksAdmin();
+  if (currentBoxType === key) renderIncluded();
+  await saveConfig();
+  showToast(`${name} added to ${boxOptions[key].name}.`);
+}
+
+async function removePackItem(key, idx) {
+  boxOptions[key].included.splice(idx, 1);
+  renderPacksAdmin();
+  if (currentBoxType === key) renderIncluded();
+  await saveConfig();
+}
+
+// ---------- slots ----------
+async function updateSlotCapacity(slotId, value) {
+  const slot = pickupSlots.find(s => s.id === slotId);
+  if (!slot) return;
+  const cap = parseInt(value, 10);
+  slot.capacity = isNaN(cap) || cap < 0 ? slot.booked : Math.max(cap, slot.booked);
+  renderSlotsAdmin();
+  await saveConfig();
+}
+
+async function resetSlotBookings() {
+  pickupSlots.forEach(s => s.booked = 0);
+  renderSlotsAdmin();
+  await saveConfig();
+  showToast('Slot bookings reset for the next cycle.');
+}
+
+async function setOrderStatus(orderId, status) {
+  const order = ordersQueue.find(o => o.id === orderId);
+  if (!order) return;
+  order.status = status;
+  renderOrdersQueue();
+  await saveOrders();
+}
+
+async function completeOrder(orderId) {
+  ordersQueue = ordersQueue.filter(o => o.id !== orderId);
+  renderOrdersQueue();
+  await saveOrders();
+}
+
+async function deleteOrder(orderId) {
+  ordersQueue = ordersQueue.filter(o => o.id !== orderId);
+  renderOrdersQueue();
+  await saveOrders();
+}
+
+function resizeImageFile(file, maxWidth) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleBannerUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Please choose an image file.');
+    input.value = '';
+    return;
+  }
+
+  const statusEl = document.getElementById('banner-upload-status');
+  statusEl.innerText = 'Uploading…';
+
+  try {
+    const dataUrl = await resizeImageFile(file, 1000);
+    shopProfile.bannerUrl = dataUrl;
+    document.getElementById('banner-preview').src = dataUrl;
+    document.getElementById('edit-shop-banner').value = '';
+    applyStoreBranding();
+    await saveConfig();
+    statusEl.innerText = 'Uploaded — now live on the customer view.';
+    showToast('Banner uploaded.');
+  } catch (e) {
+    statusEl.innerText = 'JPG or PNG, resized automatically';
+    showToast('Could not process that image — try a different file.');
+  } finally {
+    input.value = '';
+  }
+}
+
+async function saveStoreBranding() {
+  shopProfile.name = document.getElementById('edit-shop-name').value.trim() || shopProfile.name;
+  shopProfile.logoText = document.getElementById('edit-shop-logo').value.trim() || shopProfile.logoText;
+  shopProfile.subtitle = document.getElementById('edit-shop-sub').value.trim() || shopProfile.subtitle;
+  const urlFieldValue = document.getElementById('edit-shop-banner').value.trim();
+  if (urlFieldValue) shopProfile.bannerUrl = urlFieldValue;
+  applyStoreBranding();
+  document.getElementById('banner-preview').src = shopProfile.bannerUrl;
+  await saveConfig();
+  showToast('Branding updated across the live app.');
+}
+
+// ---------- init ----------
+(async function init() {
+  await loadState();
+  applyStoreBranding();
+  renderPackCards();
+  selectBoxSize('family');
+  renderAddons();
+  renderPickupOptions();
+
+  document.getElementById('edit-shop-name').value = shopProfile.name;
+  document.getElementById('edit-shop-logo').value = shopProfile.logoText;
+  document.getElementById('edit-shop-sub').value = shopProfile.subtitle;
+  document.getElementById('edit-shop-banner').value = shopProfile.bannerUrl.startsWith('data:') ? '' : shopProfile.bannerUrl;
+  document.getElementById('banner-preview').src = shopProfile.bannerUrl;
+  if (!hasStorage) showToast('Demo mode — changes work live but won\'t be saved after you close this tab.');
+})();
+</script>
+</body>
+</html>
