@@ -4,48 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Butcher App — Custom Cuts</title>
-  <style>
-    /* Minimal starter styles */
-    :root{--accent:#b22}
-    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#f7f7f7;color:#222}
-    header{background:var(--accent);color:#fff;padding:1rem;text-align:center}
-    main{max-width:900px;margin:2rem auto;padding:1rem;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
-    h1,h2,h3{margin:0 0 0.5rem 0}
-    .placeholder{color:#666}
-    pre{background:#f3f3f3;padding:0.75rem;border-radius:6px;overflow:auto}
-  </style>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header>
-    <h1>Butcher App — Custom Cuts</h1>
-    <p>Order local, custom-cut meat from nearby butchers</p>
+  <header class="site-header">
+    <div class="container">
+      <h1>Butcher App — Custom Cuts</h1>
+      <p class="tag">Order local, custom-cut meat from nearby butchers</p>
+    </div>
   </header>
 
-  <main>
-    <section id="hero">
-      <h2>Welcome</h2>
-      <p class="placeholder">This is a starter static front-end for the Butcher App. Replace this placeholder with your real UI and connect it to your backend or API.</p>
+  <main class="container">
+    <section id="catalog">
+      <h2>Available Cuts</h2>
+      <div id="products" class="products-grid">Loading products...</div>
     </section>
 
-    <section id="features">
-      <h3>Features (placeholders)</h3>
-      <ul>
-        <li>Browse available cuts</li>
-        <li>Create custom orders</li>
-        <li>Local pickup scheduling</li>
-      </ul>
-    </section>
-
-    <section id="getting-started">
-      <h3>Getting started</h3>
-      <p>Open <code>index.html</code> in your browser or serve the directory with a static server:</p>
-      <pre><code>python -m http.server 8000
-# then open http://localhost:8000</code></pre>
-    </section>
-
-    <footer style="margin-top:2rem;font-size:0.9rem;color:#666">
-      See <code>README.md</code> for development notes and contribution guidelines.
-    </footer>
+    <aside id="cart" class="cart">
+      <h2>Your Order</h2>
+      <div id="cart-items" class="cart-items">(empty)</div>
+      <div class="cart-footer">
+        <div class="total">Total: $<span id="cart-total">0.00</span></div>
+        <button id="place-order" class="btn" disabled>Place Order</button>
+      </div>
+    </aside>
   </main>
+
+  <footer class="site-footer">
+    <div class="container">See README.md for development notes.</div>
+  </footer>
+
+  <script src="js/app.js" type="module"></script>
 </body>
 </html>
