@@ -111,7 +111,7 @@
 
     <div class="form-group">
       <label for="customer-name">Your full name</label>
-      <input type="text" id="customer-name" placeholder="Your Full Name" onblur="checkForRepeatOrder()">
+      <input type="text" id="customer-name" placeholder="e.g. Sarah Jenkins" value="Sarah Jenkins" onblur="checkForRepeatOrder()">
     </div>
 
     <div class="form-group">
@@ -265,7 +265,7 @@ let addonsCatalog = [
 let pickupSlots = [
   { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 },
   { id: 'fri2', label: 'Friday, 3:30 PM – 4:00 PM', capacity: 6, booked: 0 },
-  { id: 'fri3', label: 'Friday, 4:00 PM – 4:30 PM', capacity: 4, booked: 0 },
+  { id: 'fri3', label: 'Friday, 4:00 PM – 4:30 PM', capacity: 4, booked: 3 },
   { id: 'sat1', label: 'Saturday, 9:00 AM – 9:30 AM', capacity: 8, booked: 0 }
 ];
 
@@ -293,7 +293,10 @@ async function loadState() {
 
 async function saveConfig() {
   if (!hasStorage) return;
-  try { await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog, pickupSlots }); }
+  try {
+    const catalogToSave = addonsCatalog.map(({ count, ...rest }) => ({ ...rest, count: 0 }));
+    await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog: catalogToSave, pickupSlots });
+  }
   catch (e) { showToast('Could not save — check connection'); }
 }
 async function saveOrders() {
