@@ -6,6 +6,7 @@
 <title>Butcher Pre-Order Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --paper:#F1E7D3;
@@ -398,6 +399,32 @@
 const STORAGE_KEY_CONFIG = 'shop-config';
 const STORAGE_KEY_ORDERS = 'orders';
 
+// ---- Database connection ----
+// Paste your Supabase project URL and anon public key below (from Project Settings > API)
+const SUPABASE_URL = 'https://dkuizdsxsqziaxhuasto.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_98nU1oGfgwqpLS_ON80TvA_fsZFcx-H';
+const SHOP_ID = 'default'; // change this per shop if you ever run more than one
+
+let sb = null;
+if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (e) { sb = null; }
+}
+const hasStorage = !!sb;
+
+async function dbGet(key) {
+  const { data, error } = await sb.from('app_data').select('value').eq('shop_id', SHOP_ID).eq('key', key).maybeSingle();
+  if (error) throw error;
+  return data ? data.value : null;
+}
+
+async function dbSet(key, value) {
+  const { error } = await sb.from('app_data').upsert(
+    { shop_id: SHOP_ID, key, value, updated_at: new Date().toISOString() },
+    { onConflict: 'shop_id,key' }
+  );
+  if (error) throw error;
+}
+
 let shopProfile = {
   name: "Central Prime Meats",
   logoText: "CPM",
@@ -436,38 +463,35 @@ let isStaffLoggedIn = false;
 const STAFF_PIN = '1994';
 
 // ---------- persistence ----------
-const hasStorage = typeof window.storage !== 'undefined';
-
 async function loadState() {
   if (!hasStorage) return;
   try {
-    const cfg = await window.storage.get(STORAGE_KEY_CONFIG, true);
-    if (cfg && cfg.value) {
-      const parsed = JSON.parse(cfg.value);
-      if (parsed.shopProfile) shopProfile = parsed.shopProfile;
-      if (parsed.boxOptions) boxOptions = parsed.boxOptions;
-      if (parsed.addonsCatalog) addonsCatalog = parsed.addonsCatalog;
-      if (parsed.pickupSlots) pickupSlots = parsed.pickupSlots;
+    const cfg = await dbGet(STORAGE_KEY_CONFIG);
+    if (cfg) {
+      if (cfg.shopProfile) shopProfile = cfg.shopProfile;
+      if (cfg.boxOptions) boxOptions = cfg.boxOptions;
+      if (cfg.addonsCatalog) addonsCatalog = cfg.addonsCatalog;
+      if (cfg.pickupSlots) pickupSlots = cfg.pickupSlots;
     }
   } catch (e) { /* no saved config yet, use defaults */ }
 
   try {
-    const ord = await window.storage.get(STORAGE_KEY_ORDERS, true);
-    if (ord && ord.value) ordersQueue = JSON.parse(ord.value);
+    const ord = await dbGet(STORAGE_KEY_ORDERS);
+    if (ord) ordersQueue = ord;
   } catch (e) { /* no saved orders yet */ }
 }
 
 async function saveConfig() {
   if (!hasStorage) return;
   try {
-    await window.storage.set(STORAGE_KEY_CONFIG, JSON.stringify({ shopProfile, boxOptions, addonsCatalog, pickupSlots }), true);
+    await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog, pickupSlots });
   } catch (e) { showToast('Could not save changes — check connection'); }
 }
 
 async function saveOrders() {
   if (!hasStorage) return;
   try {
-    await window.storage.set(STORAGE_KEY_ORDERS, JSON.stringify(ordersQueue), true);
+    await dbSet(STORAGE_KEY_ORDERS, ordersQueue);
   } catch (e) { showToast('Could not save order — check connection'); }
 }
 
