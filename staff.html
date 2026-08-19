@@ -462,6 +462,7 @@ function verifyStaffPin() {
   const entered = document.getElementById('staff-pin-input').value;
   if (entered === STAFF_PIN) {
     isStaffLoggedIn = true;
+    localStorage.setItem('staffLoggedIn', 'true');
     document.getElementById('pin-view').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
     renderOrdersQueue(); renderPacksAdmin(); renderAdminControls(); renderSlotsAdmin();
@@ -473,6 +474,7 @@ function verifyStaffPin() {
 
 function staffLogout() {
   isStaffLoggedIn = false;
+  localStorage.removeItem('staffLoggedIn');
   document.getElementById('admin-panel').style.display = 'none';
   document.getElementById('pin-view').style.display = 'block';
   document.getElementById('staff-pin-input').value = '';
@@ -673,6 +675,13 @@ function exportAllData() {
   document.getElementById('edit-shop-hours').value = shopProfile.hours || '';
   document.getElementById('edit-shop-policy').value = shopProfile.policyText || '';
   document.getElementById('pause-toggle').checked = !shopProfile.ordersPaused;
+
+  if (localStorage.getItem('staffLoggedIn') === 'true') {
+    isStaffLoggedIn = true;
+    document.getElementById('pin-view').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    renderOrdersQueue(); renderPacksAdmin(); renderAdminControls(); renderSlotsAdmin();
+  }
 })();
 </script>
 </body>
