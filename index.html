@@ -477,15 +477,20 @@ function closeTrackOrder() {
   document.getElementById('customer-view').style.display = 'block';
 }
 function trackOrder() {
-  const idInput = document.getElementById('track-order-id').value.trim();
+ const idInput = document.getElementById('track-order-id').value.trim();
   const resultEl = document.getElementById('track-result');
   if (!idInput) { resultEl.innerHTML = `<div class="empty-state">Enter an order number.</div>`; return; }
   const order = ordersQueue.find(o => String(o.id) === idInput);
   if (!order) { resultEl.innerHTML = `<div class="empty-state">No order found with that number.</div>`; return; }
+  
+  // Format the date nicely for the tracker
+  const formattedDate = order.orderDate ? new Date(order.orderDate).toLocaleString() : 'N/A';
+  
   const statusClass = order.status === 'Preparing' ? 'status-preparing' : order.status === 'Ready' ? 'status-ready' : 'status-new';
   resultEl.innerHTML = `
     <div class="order-card">
       <div class="order-card-header"><h4>#${order.id} — ${order.customer}</h4><span class="status-pill ${statusClass}">${order.status}</span></div>
+      <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--mustard); margin-bottom:4px;">Ordered on: ${formattedDate}</div>
       <div class="order-line"><strong>Pack:</strong> ${order.boxName} (${order.total})</div>
       <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
     </div>`;
