@@ -212,7 +212,6 @@
 const STORAGE_KEY_CONFIG = 'shop-config';
 const STORAGE_KEY_ORDERS = 'orders';
 
-// Paste your Supabase project URL and anon public key below
 const SUPABASE_URL = 'https://dkuizdsxsqziaxhuasto.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_98nU1oGfgwqpLS_ON80TvA_fsZFcx-H';
 const SHOP_ID = 'default';
@@ -483,7 +482,6 @@ function trackOrder() {
   const order = ordersQueue.find(o => String(o.id) === idInput);
   if (!order) { resultEl.innerHTML = `<div class="empty-state">No order found with that number.</div>`; return; }
   
-  // Format the date nicely for the tracker
   const formattedDate = order.orderDate ? new Date(order.orderDate).toLocaleString() : 'N/A';
   
   const statusClass = order.status === 'Preparing' ? 'status-preparing' : order.status === 'Ready' ? 'status-ready' : 'status-new';
@@ -560,23 +558,41 @@ function updateAuthUI(session) {
 }
 
 function prefillFromProfile(email) {
+  const last = ordersQueue.find(o => o.customerEmail && o.customerEmail.toLowerCase() === email.toLowerCase());
+  if (last) {
+    document.getElementById('customer-name').value = last.customer;
+    document.getElementById('customer-phone').value = last.customerPhone || '';
+  }
+}
+
+function renderPastOrders(email) {
   const listEl = document.getElementById('past-orders-list');
   const mine = ordersQueue.filter(o => o.customerEmail && o.customerEmail.toLowerCase() === email.toLowerCase());
-  if (mine.length === 0) { listEl.innerHTML = `<p style="font-size:0.78rem; color:var(--ink-soft);">No past orders yet — place your first one below.</p>`; return; }
   
-  listEl.innerHTML = `<p style="font-size:0.78rem; color:var(--ink-soft); margin-bottom:8px;">Your past orders</p>` +
-    mine.slice(0, 5).map(o => {
-      // Format the date nicely (e.g., "8/20/2026, 12:30 PM")
-      const formattedDate = o.orderDate ? new Date(o.orderDate).toLocaleString() : 'Recent';
-      
-      return `
-      <div class="order-card">
-        <div class="order-card-header"><h4>#${o.id}</h4><span style="font-size:0.72rem; color:var(--ink-soft);">${o.total}</span></div>
-        <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--mustard); margin-bottom:4px;">Ordered: ${formattedDate}</div>
-        <div class="order-line">${o.boxName}${o.extras ? ' + ' + o.extras : ''}</div>
-        <button class="btn-small" onclick="reorderFromHistory(${o.id})" style="margin-top:6px;">Order this again</button>
-      </div>`;
-    }).join('');
+  if (mine.length === 0) { 
+    listEl.innerHTML = `<p style="font-size:0.78rem; color:var(--ink-soft);">No past orders yet — place your first one below.</p>`; 
+    return; 
+  }
+  
+  listEl.innerHTML = `
+    <details style="border:1px solid var(--line); border-radius:4px; padding:8px 12px; background:var(--paper);">
+      <summary style="font-size:0.78rem; font-weight:600; color:var(--ink); cursor:pointer; outline:none;">
+        View your past orders (${mine.length})
+      </summary>
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+        ${mine.slice(0, 5).map(o => {
+          const formattedDate = o.orderDate ? new Date(o.orderDate).toLocaleString() : 'Recent';
+          
+          return `
+          <div class="order-card" style="margin-bottom:0; background:var(--card);">
+            <div class="order-card-header"><h4>#${o.id}</h4><span style="font-size:0.72rem; color:var(--ink-soft);">${o.total}</span></div>
+            <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--mustard); margin-bottom:4px;">Ordered: ${formattedDate}</div>
+            <div class="order-line">${o.boxName}${o.extras ? ' + ' + o.extras : ''}</div>
+            <button class="btn-small" onclick="reorderFromHistory(${o.id})" style="margin-top:6px;">Order this again</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`;
 }
 
 function reorderFromHistory(orderId) {
@@ -591,15 +607,19 @@ function reorderFromHistory(orderId) {
   applyStoreBranding();
   applyPauseState();
   renderPackCards();
-  selectBoxSize('family');
+  renderIncluded();
   renderAddons();
   renderPickupOptions();
+  
   if (sb) {
-    const { data: { session } } = await sb.auth.getSession();
-    updateAuthUI(session);
-    sb.auth.onAuthStateChange((event, session) => updateAuthUI(session));
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      updateAuthUI(session);
+      sb.auth.onAuthStateChange((_event, session) => {
+        updateAuthUI(session);
+      });
+    } catch (e) {}
   }
-  if (!hasStorage) showToast('Demo mode — changes work live but won\'t be saved after you close this tab.');
 })();
 </script>
 </body>
