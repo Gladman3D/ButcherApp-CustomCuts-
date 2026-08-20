@@ -365,19 +365,20 @@ function renderSlotsAdmin() {
 
 function renderOrdersQueue() {
   const queueEl = document.getElementById('incoming-orders-list');
-  document.getElementById('order-count-badge').innerText = ordersQueue.length;
+  const activeOrders = ordersQueue.filter(o => o.status !== 'Picked up');
+  document.getElementById('order-count-badge').innerText = activeOrders.length;
 
   const searchInput = document.getElementById('order-search-input');
   const sortSelect = document.getElementById('order-sort-select');
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const sortMode = sortSelect ? sortSelect.value : 'newest';
 
-  let visible = ordersQueue.filter(o => !searchTerm || o.customer.toLowerCase().includes(searchTerm));
+  let visible = activeOrders.filter(o => !searchTerm || o.customer.toLowerCase().includes(searchTerm));
   if (sortMode === 'pickup') visible = [...visible].sort((a, b) => a.pickup.localeCompare(b.pickup));
 
-  const revenue = ordersQueue.reduce((sum, o) => sum + (parseFloat(String(o.total).replace('$', '')) || 0), 0);
+  const revenue = activeOrders.reduce((sum, o) => sum + (parseFloat(String(o.total).replace('$', '')) || 0), 0);
   const summaryEl = document.getElementById('order-summary-line');
-  if (summaryEl) summaryEl.innerText = ordersQueue.length === 0 ? '' : `${ordersQueue.length} active order${ordersQueue.length === 1 ? '' : 's'} · $${revenue.toFixed(2)} total`;
+  if (summaryEl) summaryEl.innerText = activeOrders.length === 0 ? '' : `${activeOrders.length} active order${activeOrders.length === 1 ? '' : 's'} · $${revenue.toFixed(2)} total`;
 
   if (visible.length === 0) { queueEl.innerHTML = `<div class="empty-state">${searchTerm ? 'No orders match that search.' : 'No active orders in the queue.'}</div>`; return; }
 
@@ -580,7 +581,9 @@ async function setOrderStatus(orderId, status) {
   await saveOrders();
 }
 async function completeOrder(orderId) {
-  ordersQueue = ordersQueue.filter(o => o.id !== orderId);
+  const order = ordersQueue.find(o => o.id === orderId);
+  if (!order) return;
+  order.status = 'Picked up';
   renderOrdersQueue();
   await saveOrders();
 }
