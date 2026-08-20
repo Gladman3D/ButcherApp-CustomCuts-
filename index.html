@@ -555,24 +555,23 @@ function updateAuthUI(session) {
 }
 
 function prefillFromProfile(email) {
-  const last = ordersQueue.find(o => o.customerEmail && o.customerEmail.toLowerCase() === email.toLowerCase());
-  if (last) {
-    document.getElementById('customer-name').value = last.customer;
-    document.getElementById('customer-phone').value = last.customerPhone || '';
-  }
-}
-
-function renderPastOrders(email) {
   const listEl = document.getElementById('past-orders-list');
   const mine = ordersQueue.filter(o => o.customerEmail && o.customerEmail.toLowerCase() === email.toLowerCase());
   if (mine.length === 0) { listEl.innerHTML = `<p style="font-size:0.78rem; color:var(--ink-soft);">No past orders yet — place your first one below.</p>`; return; }
+  
   listEl.innerHTML = `<p style="font-size:0.78rem; color:var(--ink-soft); margin-bottom:8px;">Your past orders</p>` +
-    mine.slice(0, 5).map(o => `
+    mine.slice(0, 5).map(o => {
+      // Format the date nicely (e.g., "8/20/2026, 12:30 PM")
+      const formattedDate = o.orderDate ? new Date(o.orderDate).toLocaleString() : 'Recent';
+      
+      return `
       <div class="order-card">
         <div class="order-card-header"><h4>#${o.id}</h4><span style="font-size:0.72rem; color:var(--ink-soft);">${o.total}</span></div>
+        <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--mustard); margin-bottom:4px;">Ordered: ${formattedDate}</div>
         <div class="order-line">${o.boxName}${o.extras ? ' + ' + o.extras : ''}</div>
         <button class="btn-small" onclick="reorderFromHistory(${o.id})" style="margin-top:6px;">Order this again</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 }
 
 function reorderFromHistory(orderId) {
