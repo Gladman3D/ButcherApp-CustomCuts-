@@ -587,10 +587,10 @@ function renderPastOrders(email) {
           <div class="order-card" style="margin-bottom:0; background:var(--card);">
             <div class="order-card-header"><h4>#${o.id}</h4><span style="font-size:0.72rem; color:var(--ink-soft);">${o.total}</span></div>
             <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--mustard); margin-bottom:4px;">Ordered: ${formattedDate}</div>
-            <div class="order-line">${o.boxName}${o.extras ? ' + ' + o.extras : ''}</div>
-            <div style="display:flex; gap:6px; margin-top:6px;">
-              <button class="btn-small" onclick="reorderFromHistory(${o.id})">Order this again</button>
-              <button class="btn-small" onclick="deleteOrder(${o.id})" style="color:var(--danger); border-color:var(--danger);">Delete</button>
+            <div class="order-line"><strong>Pack:</strong> ${o.boxName}</div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+              <button class="btn-small" onclick="reorderFromHistory(${o.id})">Reorder</button>
+              <button class="btn-small" style="color:var(--danger); border-color:var(--danger);" onclick="deleteOrder(${o.id})">Delete</button>
             </div>
           </div>`;
         }).join('')}
