@@ -433,7 +433,7 @@ async function submitOrder() {
   const notes = document.getElementById('cutting-notes').value.trim();
   const slotId = document.getElementById('pickup-slot').value;
   const slot = pickupSlots.find(s => s.id === slotId);
-
+  const orderDate = new Date().toISOString();
   if (!slot || slot.booked >= slot.capacity) { showToast('That pickup slot just filled up — pick another.'); renderPickupOptions(); return; }
 
   btn.disabled = true; btn.innerText = 'Placing order…';
