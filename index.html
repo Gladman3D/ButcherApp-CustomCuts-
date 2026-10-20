@@ -44,12 +44,12 @@
   .item-row{display:flex; justify-content:space-between; align-items:center; background:var(--paper); padding:11px 14px; border-radius:4px; border:1px solid var(--line);}
   .item-row.out-of-stock{opacity:0.42; border-style:dashed;}
   
-  .item-left { display:flex; align-items:center; gap:12px; transition: opacity 0.2s; border-radius: 4px; }
+  .item-left { display:flex; align-items:center; gap:12px; transition: opacity 0.2s; border-radius: 4px; flex: 1; }
   .item-left:hover { opacity: 0.75; }
   .item-thumbnail { width:48px; height:48px; border-radius:4px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
   .item-info h4{font-size:0.88rem; font-weight:600;}
   .item-info span{font-size:0.74rem; color:var(--ink-soft);}
-  .item-right{display:flex; align-items:center; gap:12px;}
+  .item-right{display:flex; align-items:center; gap:12px; flex-shrink: 0;}
   .item-price{font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:var(--mustard); font-weight:600;}
   
   .counter-controls{display:flex; align-items:center; gap:9px;}
@@ -93,7 +93,7 @@
   /* --- MODAL CSS --- */
   .modal-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(20, 15, 10, 0.85); /* Dark ink background */
+    background: rgba(20, 15, 10, 0.85); 
     display: flex; align-items: center; justify-content: center;
     z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s;
     padding: 16px;
@@ -145,7 +145,6 @@
     </div>
   </div>
 
-  <!-- CUSTOMER VIEW -->
   <div id="customer-view" class="step">
     <div id="paused-banner" style="display:none; background:#fcf7c8; border:1px solid var(--oxblood); color:var(--oxblood); padding:12px 14px; border-radius:4px; font-size:0.82rem; margin-bottom:18px;">
       We're not taking online pre-orders right now — please call the shop directly.
@@ -232,7 +231,6 @@
     <p id="policy-text" style="font-size:0.72rem; color:var(--ink-soft); text-align:center; margin-top:10px;"></p>
   </div>
 
-  <!-- SUCCESS -->
   <div id="success-screen" class="success-screen step">
     <div class="stamp">ORDER RECEIVED</div>
     <h2>Sent to the shop</h2>
@@ -241,7 +239,6 @@
     <button class="btn-primary" style="margin-top:22px;" onclick="resetApp()">Build another pack</button>
   </div>
 
-  <!-- TRACK ORDER -->
   <div id="track-view" class="step" style="display:none;">
     <div class="section-title">Track your order</div>
     <div class="form-group">
@@ -258,7 +255,7 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- --- MODAL HTML OVERLAY --- -->
+<!-- MODAL HTML OVERLAY -->
 <div id="item-modal" class="modal-overlay" onclick="closeItemModal(event)">
   <div class="modal-card" onclick="event.stopPropagation()">
     <button class="modal-close" onclick="closeItemModal(event)">&times;</button>
@@ -271,7 +268,6 @@
       <h2 id="modal-title" class="modal-title">Item Name</h2>
       <p id="modal-price" class="modal-price">$0.00</p>
       <p id="modal-description" class="modal-desc">Detailed description goes here...</p>
-      
       <div class="modal-footer">
         <button class="btn-primary" style="width: auto; padding: 10px 32px;" onclick="closeItemModal(event)">Done</button>
       </div>
@@ -322,26 +318,17 @@ let shopProfile = {
 let boxOptions = {
   family: { price: 65, name: "Family Pack", tagline: "balanced cuts", included: [
     { name: "Ribeye Fillet", qty: 1, note: "2x thick-cut steaks (~500g)" },
-    { name: "Premium Sausages", qty: 1, note: "1kg butcher's choice thick beef" },
-    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
-  ]},
-  bbq: { price: 95, name: "BBQ Stacker", tagline: "heavy steak bundle", included: [
-    { name: "Ribeye Fillet", qty: 2, note: "2x thick-cut steaks (~500g) each" },
-    { name: "Premium Sausages", qty: 2, note: "1kg butcher's choice thick beef each" },
-    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
+    { name: "Premium Sausages", qty: 1, note: "1kg butcher's choice thick beef" }
   ]}
 };
 
 let addonsCatalog = [
-  { id: 'brisket', category: 'Beef', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
-  { id: 'bacon', category: 'Pork', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
+  { id: 'brisket', category: 'Beef', name: 'Slow Cook Brisket', desc: 'Whole packer', price: 15, options: [{label: '500g', price: 15}, {label: '1kg Bulk', price: 28}], count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
+  { id: 'bacon', category: 'Pork', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, options: null, count: 0, inStock: true, maxCount: 5 }
 ];
 
 let pickupSlots = [
-  { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 },
-  { id: 'fri2', label: 'Friday, 3:30 PM – 4:00 PM', capacity: 6, booked: 0 },
-  { id: 'fri3', label: 'Friday, 4:00 PM – 4:30 PM', capacity: 4, booked: 3 },
-  { id: 'sat1', label: 'Saturday, 9:00 AM – 9:30 AM', capacity: 8, booked: 0 }
+  { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 }
 ];
 
 let ordersQueue = [];
@@ -349,7 +336,7 @@ let currentBoxType = 'none';
 let lastFoundOrder = null;
 let currentUserEmail = null;
 
-// --- MODAL FUNCTIONS ---
+// --- MODAL & OPTION FUNCTIONS ---
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -362,20 +349,31 @@ function openItemModal(name, desc, price, category, imageUrl) {
   document.getElementById('modal-category-badge').innerText = category || 'General';
   
   const imgContainer = document.getElementById('modal-img-container');
-  // Check if imageUrl is a string and not "undefined"
   if (imageUrl && imageUrl !== 'undefined') {
     imgContainer.style.backgroundImage = `url('${imageUrl}')`;
   } else {
     imgContainer.style.backgroundImage = 'none';
     imgContainer.style.backgroundColor = 'var(--oxblood)';
   }
-  
   document.getElementById('item-modal').classList.add('show');
 }
 
 function closeItemModal(e) {
   if (e) e.stopPropagation();
   document.getElementById('item-modal').classList.remove('show');
+}
+
+// Triggered when a customer changes the weight dropdown
+function updateItemVariant(itemId, selectEl) {
+  const item = addonsCatalog.find(i => i.id === itemId);
+  if (!item) return;
+  item.selectedOptionIndex = parseInt(selectEl.value, 10);
+  
+  // Instantly update the price display without re-rendering the whole list
+  const currentPrice = item.options[item.selectedOptionIndex].price;
+  document.getElementById(`price-display-${itemId}`).innerText = '+$' + currentPrice.toFixed(2);
+  
+  calculateTotal();
 }
 // ----------------------
 
@@ -399,7 +397,7 @@ async function loadState() {
 async function saveConfig() {
   if (!hasStorage) return;
   try {
-    const catalogToSave = addonsCatalog.map(({ count, ...rest }) => ({ ...rest, count: 0 }));
+    const catalogToSave = addonsCatalog.map(({ count, selectedOptionIndex, ...rest }) => ({ ...rest, count: 0 }));
     await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog: catalogToSave, pickupSlots });
   }
   catch (e) { showToast('Could not save — check connection'); }
@@ -458,8 +456,6 @@ function applyPauseState() {
 function renderPackCards() {
   document.getElementById('card-family-name').innerText = boxOptions.family.name;
   document.getElementById('card-family-price').innerText = `$${boxOptions.family.price} · ${boxOptions.family.tagline}`;
-  document.getElementById('card-bbq-name').innerText = boxOptions.bbq.name;
-  document.getElementById('card-bbq-price').innerText = `$${boxOptions.bbq.price} · ${boxOptions.bbq.tagline}`;
 }
 
 function renderIncluded() {
@@ -492,18 +488,38 @@ function renderAddons() {
       const atMax = item.count >= (item.maxCount || 99);
       const imageTag = item.imageUrl ? `<img src="${item.imageUrl}" class="item-thumbnail" alt="${item.name}">` : '';
       
-      // Update: Made .item-left clickable to trigger the new modal popup
+      let priceDisplay = '';
+      let optionDropdown = '';
+      
+      // NEW VARIANT ENGINE UI
+      if (item.options && item.options.length > 0) {
+        if (typeof item.selectedOptionIndex === 'undefined') item.selectedOptionIndex = 0;
+        const currentPrice = item.options[item.selectedOptionIndex].price;
+        
+        priceDisplay = `<span class="item-price" id="price-display-${item.id}">+$${currentPrice.toFixed(2)}</span>`;
+        optionDropdown = `
+          <select style="margin-top:6px; max-width:140px; font-weight:normal; padding:4px 8px; font-size:0.75rem;" onclick="event.stopPropagation()" onchange="updateItemVariant('${item.id}', this)">
+            ${item.options.map((opt, idx) => `<option value="${idx}" ${item.selectedOptionIndex === idx ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          </select>
+        `;
+      } else {
+        priceDisplay = `<span class="item-price" id="price-display-${item.id}">+$${Number(item.price).toFixed(2)}</span>`;
+      }
+      
+      const modalPrice = (item.options && item.options.length > 0) ? item.options[0].price : item.price;
+
       return `
         <div class="item-row ${item.inStock ? '' : 'out-of-stock'}">
-          <div class="item-left" style="cursor:pointer;" onclick="openItemModal('${escapeHtml(item.name)}', '${escapeHtml(item.desc)}', ${item.price}, '${escapeHtml(item.category)}', '${item.imageUrl}')">
+          <div class="item-left" style="cursor:pointer;" onclick="openItemModal('${escapeHtml(item.name)}', '${escapeHtml(item.desc)}', ${modalPrice}, '${escapeHtml(item.category)}', '${item.imageUrl}')">
             ${imageTag}
             <div class="item-info">
               <h4 style="font-size:0.88rem; font-weight:600;">${item.name} ${!item.inStock ? '<span style="color:var(--danger);">(out of stock)</span>' : ''}</h4>
-              <span style="font-size:0.74rem; color:var(--ink-soft);">${item.desc}</span>
+              <span style="font-size:0.74rem; color:var(--ink-soft); display:block;">${item.desc}</span>
+              ${optionDropdown}
             </div>
           </div>
           <div class="item-right">
-            <span class="item-price">+$${item.price}</span>
+            ${priceDisplay}
             <div class="counter-controls">
               <button class="counter-btn" onclick="updateCount('${item.id}', -1)" ${!item.inStock || item.count===0 ? 'disabled' : ''}>-</button>
               <span class="counter-value" id="count-${item.id}">${item.count}</span>
@@ -544,7 +560,7 @@ function selectBoxSize(type) {
   document.getElementById('card-family').classList.toggle('selected', type === 'family');
   document.getElementById('card-bbq').classList.toggle('selected', type === 'bbq');
   
-  document.getElementById('summary-box-name').innerText = type === 'none' ? 'No Pack' : boxOptions[type].name;
+  document.getElementById('summary-box-name').innerText = type === 'none' ? 'No Pack' : (boxOptions[type] ? boxOptions[type].name : 'Pack');
   renderIncluded();
   calculateTotal();
 }
@@ -557,12 +573,18 @@ function updateCount(itemId, change) {
   item.count = next;
   document.getElementById(`count-${itemId}`).innerText = item.count;
   calculateTotal();
-  renderAddons();
+  // We only re-render the count and total to avoid redrawing the dropdown while the user clicks
 }
 
 function calculateTotal() {
-  const base = currentBoxType === 'none' ? 0 : boxOptions[currentBoxType].price;
-  const extras = addonsCatalog.reduce((sum, i) => sum + i.count * i.price, 0);
+  const base = currentBoxType === 'none' ? 0 : (boxOptions[currentBoxType] ? boxOptions[currentBoxType].price : 0);
+  
+  // Calculate extras considering selected variants
+  const extras = addonsCatalog.reduce((sum, i) => {
+    const currentPrice = (i.options && i.options.length > 0) ? i.options[i.selectedOptionIndex || 0].price : i.price;
+    return sum + (i.count * currentPrice);
+  }, 0);
+  
   const total = base + extras;
   document.getElementById('summary-total').innerText = `$${total.toFixed(2)}`;
   return total;
@@ -585,7 +607,12 @@ async function submitOrder() {
 
   btn.disabled = true; btn.innerText = 'Placing order…';
 
-  const extrasSummary = addonsCatalog.filter(i => i.count > 0).map(i => `${i.count}x ${i.name}`).join(', ');
+  // Format the extras summary to include the selected weight variant
+  const extrasSummary = addonsCatalog.filter(i => i.count > 0).map(i => {
+    const variantLabel = (i.options && i.options.length > 0) ? ` (${i.options[i.selectedOptionIndex || 0].label})` : '';
+    return `${i.count}x ${i.name}${variantLabel}`;
+  }).join(', ');
+  
   slot.booked += 1;
   const boxDisplayName = currentBoxType === 'none' ? 'No Pack' : boxOptions[currentBoxType].name;
 
@@ -662,7 +689,17 @@ function applyRepeatOrder() {
     lastFoundOrder.extras.split(',').forEach(part => {
       const m = part.trim().match(/^(\d+)x\s+(.+)$/i);
       if (!m) return;
-      const item = addonsCatalog.find(i => i.name.toLowerCase() === m[2].trim().toLowerCase());
+      
+      // Parse out variant labels if they exist, e.g. "Brisket (1kg Bulk)"
+      let itemName = m[2].trim();
+      let item = addonsCatalog.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+      
+      // If direct match fails, try stripping the brackets "(1kg Bulk)"
+      if (!item && itemName.includes('(')) {
+        const cleanName = itemName.split('(')[0].trim();
+        item = addonsCatalog.find(i => i.name.toLowerCase() === cleanName.toLowerCase());
+      }
+      
       if (item && item.inStock) item.count = Math.min(parseInt(m[1], 10), item.maxCount || 99);
     });
   }
