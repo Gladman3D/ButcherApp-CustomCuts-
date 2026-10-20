@@ -49,8 +49,8 @@
   .pin-input{text-align:center; font-size:1.4rem; letter-spacing:8px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
   #admin-panel{display:none;}
   .badge-notice{background:#EAEFE7; color:var(--sage); font-size:0.74rem; padding:5px 10px; border-radius:4px; display:inline-block; margin-bottom:14px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
-  .admin-tabs{display:flex; gap:5px; margin-bottom:16px; flex-wrap:wrap;}
-  .admin-tab{flex:1; min-width:64px; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft); padding:8px 4px; border-radius:4px; font-size:0.68rem; font-weight:600; cursor:pointer; text-align:center;}
+  .admin-tabs{display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap;}
+  .admin-tab{flex:1; min-width:56px; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft); padding:8px 2px; border-radius:4px; font-size:0.65rem; font-weight:600; cursor:pointer; text-align:center;}
   .admin-tab.active{background:var(--oxblood); color:#fff; border-color:var(--oxblood);}
   .admin-section{background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:15px; margin-bottom:14px;}
   .admin-section h3{font-family:'Oswald',sans-serif; font-size:0.9rem; margin-bottom:10px; font-weight:600;}
@@ -127,8 +127,9 @@
       <div class="admin-tab" id="tab-packs" onclick="switchAdminTab('packs')">Packs</div>
       <div class="admin-tab" id="tab-catalog" onclick="switchAdminTab('catalog')">Extras</div>
       <div class="admin-tab" id="tab-slots" onclick="switchAdminTab('slots')">Slots</div>
-      <div class="admin-tab" id="tab-branding" onclick="switchAdminTab('branding')">Branding</div>
-      <div class="admin-tab" id="tab-settings" onclick="switchAdminTab('settings')">Settings</div>
+      <div class="admin-tab" id="tab-branding" onclick="switchAdminTab('branding')">Brand</div>
+      <div class="admin-tab" id="tab-tools" onclick="switchAdminTab('tools')">Tools</div>
+      <div class="admin-tab" id="tab-settings" onclick="switchAdminTab('settings')">Status</div>
     </div>
 
     <div id="admin-orders-content">
@@ -182,16 +183,6 @@
           </div>
         </div>
       </div>
-
-      <div class="admin-section">
-        <h3>Bulk Upload Extras (CSV)</h3>
-        <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">
-          Build your list in Excel or Google Sheets with 4 columns: <strong>Category, Name, Description, Price</strong>. Export as a .csv file and upload it here.
-        </p>
-        <div class="file-input-wrapper">
-          <input type="file" id="csv-upload-input" accept=".csv" onchange="handleCSVUpload(this)" style="border:none; background:transparent; padding:4px;">
-        </div>
-      </div>
     </div>
 
     <div id="admin-slots-content" style="display:none;">
@@ -231,6 +222,26 @@
       </div>
     </div>
 
+    <!-- NEW TOOLS TAB -->
+    <div id="admin-tools-content" style="display:none;">
+      <div class="section-title">Manager tools <small>bulk upload & backups</small></div>
+      <div class="admin-section">
+        <h3>Bulk Upload Extras (CSV)</h3>
+        <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">
+          Build your list in Excel or Google Sheets with 4 columns: <strong>Category, Name, Description, Price</strong>. Export as a .csv file and upload it here to load your entire inventory instantly.
+        </p>
+        <div class="file-input-wrapper">
+          <input type="file" id="csv-upload-input" accept=".csv" onchange="handleCSVUpload(this)" style="border:none; background:transparent; padding:4px;">
+        </div>
+      </div>
+
+      <div class="section-title">Data Backup</div>
+      <div class="admin-section">
+        <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:12px;">Download everything — packs, extras, slots, branding, and all customer orders — as a secure JSON backup file.</p>
+        <button class="btn-primary" onclick="exportAllData()">Download full backup</button>
+      </div>
+    </div>
+
     <div id="admin-settings-content" style="display:none;">
       <div class="section-title">Store status <small>pause taking new orders</small></div>
       <div class="admin-section">
@@ -244,11 +255,6 @@
             <span class="slider"></span>
           </label>
         </div>
-      </div>
-      <div class="section-title">Backup your data</div>
-      <div class="admin-section">
-        <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:12px;">Download everything — packs, extras, slots, branding, and all orders — as a single file you can keep as a backup.</p>
-        <button class="btn-primary" onclick="exportAllData()">Download full backup (JSON)</button>
       </div>
     </div>
 
@@ -442,6 +448,7 @@ function loadItemForEdit(itemId) {
   document.getElementById('btn-add-item').innerText = 'Save Changes';
   document.getElementById('btn-cancel-edit').style.display = 'block';
   
+  switchAdminTab('catalog');
   document.getElementById('form-title-extras').scrollIntoView({behavior: 'smooth'});
 }
 
@@ -672,7 +679,7 @@ function staffLogout() {
 }
 
 function switchAdminTab(tab) {
-  ['orders','packs','catalog','slots','branding','settings'].forEach(t => {
+  ['orders','packs','catalog','slots','branding','tools','settings'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
     document.getElementById(`admin-${t}-content`).style.display = t === tab ? 'block' : 'none';
   });
