@@ -34,8 +34,12 @@
   .section-title small{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; color:var(--ink-soft); font-weight:500;}
   .form-group{margin-bottom:18px;}
   .form-group label{display:block; font-size:0.8rem; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
-  textarea,select,input[type=text],input[type=password],input[type=number],input[type=file]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
+  textarea,select,input[type=text],input[type=password],input[type=number],input[type=file],input[type=color]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
   textarea:focus,select:focus,input:focus{border-color:var(--oxblood);}
+  .color-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;}
+  .color-picker-group{display:flex; align-items:center; gap:8px; background:var(--paper); border:1px solid var(--line); padding:6px 10px; border-radius:4px;}
+  .color-picker-group input[type=color]{width:36px; height:28px; border:none; background:transparent; cursor:pointer; padding:0;}
+  .color-picker-group span{font-size:0.75rem; font-weight:500;}
   .btn-primary{display:block; width:100%; background:var(--oxblood); color:#fff; border:none; padding:13px; border-radius:4px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
   .btn-primary:hover{background:var(--oxblood-bright);}
   .btn-primary:disabled{background:var(--ink-soft); cursor:not-allowed;}
@@ -191,8 +195,9 @@
       <button class="btn-secondary" onclick="resetSlotBookings()">Reset all bookings to 0</button>
     </div>
 
+    <!-- BRANDING & COLOR THEME TAB -->
     <div id="admin-branding-content" style="display:none;">
-      <div class="section-title">Shop identity</div>
+      <div class="section-title">Shop identity & Visual Theme</div>
       <div class="admin-section">
         <div class="form-group"><label>Shop name</label><input type="text" id="edit-shop-name" value="Central Prime Meats"></div>
         <div class="form-group"><label>Logo initials</label><input type="text" id="edit-shop-logo" value="CPM" maxlength="4"></div>
@@ -218,11 +223,40 @@
         <div class="form-group"><label>Opening hours</label><input type="text" id="edit-shop-hours" placeholder="Tue–Sat, 8am–5pm"></div>
         <div class="form-group"><label>Order policy (shown at checkout)</label><textarea id="edit-shop-policy" rows="2"></textarea></div>
 
-        <button class="btn-primary" onclick="saveStoreBranding()">Save branding</button>
+        <h3 style="margin-top:20px; border-top:1px dashed var(--line); padding-top:14px;">Colour Scheme Customisation</h3>
+        <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">Change the app theme colors to match the business branding perfectly.</p>
+        
+        <div class="color-grid">
+          <div class="color-picker-group">
+            <input type="color" id="theme-oxblood" value="#7A2A2A">
+            <span>Primary Brand (Buttons/Headers)</span>
+          </div>
+          <div class="color-picker-group">
+            <input type="color" id="theme-paper" value="#F1E7D3">
+            <span>Background Paper</span>
+          </div>
+          <div class="color-picker-group">
+            <input type="color" id="theme-card" value="#FBF6EA">
+            <span>Card Background</span>
+          </div>
+          <div class="color-picker-group">
+            <input type="color" id="theme-ink" value="#2A211A">
+            <span>Main Text</span>
+          </div>
+          <div class="color-picker-group">
+            <input type="color" id="theme-mustard" value="#B4842A">
+            <span>Accent / Prices</span>
+          </div>
+          <div class="color-picker-group">
+            <input type="color" id="theme-sage" value="#54724F">
+            <span>Success / Stock</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="saveStoreBranding()">Save branding & colors</button>
       </div>
     </div>
 
-    <!-- NEW TOOLS TAB -->
     <div id="admin-tools-content" style="display:none;">
       <div class="section-title">Manager tools <small>bulk upload & backups</small></div>
       <div class="admin-section">
@@ -296,7 +330,12 @@ let shopProfile = {
   bannerUrl: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80",
   address: "", phone: "", hours: "",
   policyText: "Orders can be changed or cancelled up to 24 hours before your pickup slot.",
-  ordersPaused: false
+  ordersPaused: false,
+  theme: {
+    oxblood: "#7A2A2A", oxbloodBright: "#9C3A3A",
+    paper: "#F1E7D3", card: "#FBF6EA",
+    ink: "#2A211A", mustard: "#B4842A", sage: "#54724F"
+  }
 };
 
 let boxOptions = {
@@ -370,6 +409,17 @@ function applyStoreBranding() {
   document.getElementById('header-logo').innerText = shopProfile.logoText;
   document.getElementById('banner-bg').style.backgroundImage =
     `linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('${shopProfile.bannerUrl}')`;
+
+  if (shopProfile.theme) {
+    const r = document.documentElement.style;
+    r.setProperty('--oxblood', shopProfile.theme.oxblood);
+    r.setProperty('--oxblood-bright', shopProfile.theme.oxbloodBright);
+    r.setProperty('--paper', shopProfile.theme.paper);
+    r.setProperty('--card', shopProfile.theme.card);
+    r.setProperty('--ink', shopProfile.theme.ink);
+    r.setProperty('--mustard', shopProfile.theme.mustard);
+    r.setProperty('--sage', shopProfile.theme.sage);
+  }
 }
 
 function renderAdminControls() {
@@ -591,7 +641,7 @@ function renderOrdersQueue() {
       <div class="order-line"><strong>Pack:</strong> ${order.boxName} (${order.total})</div>
       <div class="order-line"><strong>Extras:</strong> ${order.extras || 'None'}</div>
       <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
-      ${order.customerPhone ? `<div class="order-line"><strong>Phone:</strong> ${order.customerPhone}${contactLinks}</div>` : ''}
+      ${order.customerPhone ? `<div class="order-line"><strong>Phone:</strong> ${order.customerPhone} ${contactLinks}</div>` : ''}
       ${order.customerEmail ? `<div class="order-line"><strong>Email:</strong> ${order.customerEmail}</div>` : ''}
       ${order.notes ? `<div class="order-notes"><strong>Note:</strong> ${order.notes}</div>` : ''}
       <div class="order-actions">
@@ -825,10 +875,22 @@ async function saveStoreBranding() {
   shopProfile.phone = document.getElementById('edit-shop-phone').value.trim();
   shopProfile.hours = document.getElementById('edit-shop-hours').value.trim();
   shopProfile.policyText = document.getElementById('edit-shop-policy').value.trim();
+  
+  // Save theme colors
+  shopProfile.theme = {
+    oxblood: document.getElementById('theme-oxblood').value,
+    oxbloodBright: document.getElementById('theme-oxblood').value,
+    paper: document.getElementById('theme-paper').value,
+    card: document.getElementById('theme-card').value,
+    ink: document.getElementById('theme-ink').value,
+    mustard: document.getElementById('theme-mustard').value,
+    sage: document.getElementById('theme-sage').value
+  };
+
   applyStoreBranding();
   document.getElementById('banner-preview').src = shopProfile.bannerUrl;
   await saveConfig();
-  showToast('Branding updated across the live app.');
+  showToast('Branding & color theme updated live.');
 }
 
 async function togglePauseOrders(checkbox) {
@@ -931,6 +993,15 @@ async function handleCSVUpload(input) {
   document.getElementById('edit-shop-hours').value = shopProfile.hours || '';
   document.getElementById('edit-shop-policy').value = shopProfile.policyText || '';
   document.getElementById('pause-toggle').checked = !shopProfile.ordersPaused;
+
+  if (shopProfile.theme) {
+    document.getElementById('theme-oxblood').value = shopProfile.theme.oxblood || '#7A2A2A';
+    document.getElementById('theme-paper').value = shopProfile.theme.paper || '#F1E7D3';
+    document.getElementById('theme-card').value = shopProfile.theme.card || '#FBF6EA';
+    document.getElementById('theme-ink').value = shopProfile.theme.ink || '#2A211A';
+    document.getElementById('theme-mustard').value = shopProfile.theme.mustard || '#B4842A';
+    document.getElementById('theme-sage').value = shopProfile.theme.sage || '#54724F';
+  }
 
   if (localStorage.getItem('staffLoggedIn') === 'true') {
     isStaffLoggedIn = true;
