@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Staff Dashboard — Central Prime Meats</title>
-<meta http-equiv="refresh" content="120">
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥩</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -174,7 +173,8 @@
             <option value="Pantry">Pantry / Other</option>
           </select>
 
-          <input type="number" id="new-item-price" min="0" step="0.5" placeholder="Price per unit ($)">
+          <span class="field-label" style="margin-top:4px; margin-bottom:0;">Pricing</span>
+          <input type="text" id="new-item-price" placeholder="Flat price ($) OR Options (e.g. 500g:15 | 1kg:28)">
           
           <span class="field-label" style="margin-top:4px; margin-bottom:0;">Item Image (Optional)</span>
           <div class="file-input-wrapper">
@@ -195,7 +195,6 @@
       <button class="btn-secondary" onclick="resetSlotBookings()">Reset all bookings to 0</button>
     </div>
 
-    <!-- BRANDING & COLOR THEME TAB -->
     <div id="admin-branding-content" style="display:none;">
       <div class="section-title">Shop identity & Visual Theme</div>
       <div class="admin-section">
@@ -224,12 +223,11 @@
         <div class="form-group"><label>Order policy (shown at checkout)</label><textarea id="edit-shop-policy" rows="2"></textarea></div>
 
         <h3 style="margin-top:20px; border-top:1px dashed var(--line); padding-top:14px;">Colour Scheme Customisation</h3>
-        <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">Change the app theme colors to match the business branding perfectly.</p>
         
         <div class="color-grid">
           <div class="color-picker-group">
             <input type="color" id="theme-oxblood" value="#7A2A2A">
-            <span>Primary Brand (Buttons/Headers)</span>
+            <span>Primary Brand</span>
           </div>
           <div class="color-picker-group">
             <input type="color" id="theme-paper" value="#F1E7D3">
@@ -259,35 +257,62 @@
 
     <div id="admin-tools-content" style="display:none;">
       <div class="section-title">Manager tools <small>bulk upload & backups</small></div>
+      
       <div class="admin-section">
         <h3>Bulk Upload Extras (CSV)</h3>
         <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">
-          Build your list in Excel or Google Sheets with 4 columns: <strong>Category, Name, Description, Price</strong>. Export as a .csv file and upload it here to load your entire inventory instantly.
+          4 columns: <strong>Category, Name, Description, Price</strong>.<br>
+          For multiple weight options, put them in the price column like this: <code>500g:15 | 1kg:28</code>
         </p>
         <div class="file-input-wrapper">
           <input type="file" id="csv-upload-input" accept=".csv" onchange="handleCSVUpload(this)" style="border:none; background:transparent; padding:4px;">
         </div>
       </div>
 
+      <div class="admin-section">
+        <h3>Bulk Upload Packs (CSV)</h3>
+        <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">
+          Format: <strong>ID, Name, Price, Tagline, Contents</strong>. <br>
+          E.g., <code>1x Ribeye (thick cut) + 1x Sausages</code>.
+        </p>
+        <div class="file-input-wrapper">
+          <input type="file" id="packs-csv-upload" accept=".csv" onchange="handlePacksCSVUpload(this)" style="border:none; background:transparent; padding:4px;">
+        </div>
+      </div>
+
       <div class="section-title">Data Backup</div>
       <div class="admin-section">
-        <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:12px;">Download everything — packs, extras, slots, branding, and all customer orders — as a secure JSON backup file.</p>
         <button class="btn-primary" onclick="exportAllData()">Download full backup</button>
       </div>
     </div>
 
     <div id="admin-settings-content" style="display:none;">
-      <div class="section-title">Store status <small>pause taking new orders</small></div>
+      <div class="section-title">Store status <small>sync & orders</small></div>
       <div class="admin-section">
         <div class="admin-row">
           <div>
             <h4 style="font-size:0.87rem;">Accepting online pre-orders</h4>
-            <span style="font-size:0.74rem; color:var(--ink-soft);">Turn off if the shop is closed or fully booked</span>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="pause-toggle" checked onchange="togglePauseOrders(this)">
             <span class="slider"></span>
           </label>
+        </div>
+        
+        <div class="admin-row">
+          <div>
+            <h4 style="font-size:0.87rem;">Live Order Sync</h4>
+            <span style="font-size:0.74rem; color:var(--ink-soft);" id="sync-status-text">Sync is OFF</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <label style="font-size:0.75rem; color:var(--ink-soft);">Every 
+              <input type="number" id="sync-rate-input" value="30" min="5" style="width:50px; padding:4px; margin:0 4px; display:inline-block;" onchange="handleRateChange()">s
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="auto-sync-toggle" onchange="handleSyncToggle()">
+              <span class="slider"></span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -341,31 +366,23 @@ let shopProfile = {
 let boxOptions = {
   family: { price: 65, name: "Family Pack", tagline: "balanced cuts", included: [
     { name: "Ribeye Fillet", qty: 1, note: "2x thick-cut steaks (~500g)" },
-    { name: "Premium Sausages", qty: 1, note: "1kg butcher's choice thick beef" },
-    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
-  ]},
-  bbq: { price: 95, name: "BBQ Stacker", tagline: "heavy steak bundle", included: [
-    { name: "Ribeye Fillet", qty: 2, note: "2x thick-cut steaks (~500g) each" },
-    { name: "Premium Sausages", qty: 2, note: "1kg butcher's choice thick beef each" },
-    { name: "Lean Beef Mince", qty: 1, note: "1kg fresh ground premium chuck" }
+    { name: "Premium Sausages", qty: 1, note: "1kg butcher's choice thick beef" }
   ]}
 };
 
 let addonsCatalog = [
-  { id: 'brisket', category: 'Beef', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
-  { id: 'bacon', category: 'Pork', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
+  { id: 'brisket', category: 'Beef', name: 'Slow Cook Brisket', desc: 'Whole packer', price: 15, options: [{label: '500g', price: 15}, {label: '1kg Bulk', price: 28}], count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
+  { id: 'bacon', category: 'Pork', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, options: null, count: 0, inStock: true, maxCount: 5 }
 ];
 
 let pickupSlots = [
-  { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 },
-  { id: 'fri2', label: 'Friday, 3:30 PM – 4:00 PM', capacity: 6, booked: 0 },
-  { id: 'fri3', label: 'Friday, 4:00 PM – 4:30 PM', capacity: 4, booked: 3 },
-  { id: 'sat1', label: 'Saturday, 9:00 AM – 9:30 AM', capacity: 8, booked: 0 }
+  { id: 'fri1', label: 'Friday, 3:00 PM – 3:30 PM', capacity: 6, booked: 0 }
 ];
 
 let ordersQueue = [];
 let isStaffLoggedIn = false;
 let editingItemId = null;
+let autoSyncTimer = null;
 const STAFF_PIN = '1994';
 
 async function loadState() {
@@ -384,11 +401,13 @@ async function loadState() {
     if (ord) ordersQueue = ord;
   } catch (e) {}
 }
+
 async function saveConfig() {
   if (!hasStorage) return;
   try {
     const catalogToSave = addonsCatalog.map(({ count, ...rest }) => ({ ...rest, count: 0 }));
     await dbSet(STORAGE_KEY_CONFIG, { shopProfile, boxOptions, addonsCatalog: catalogToSave, pickupSlots });
+    showToast('Changes saved live!');
   }
   catch (e) { showToast('Could not save changes — check connection'); }
 }
@@ -404,12 +423,45 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2400);
 }
 
+function handleSyncToggle() {
+  const isEnabled = document.getElementById('auto-sync-toggle').checked;
+  const statusText = document.getElementById('sync-status-text');
+  if (isEnabled) {
+    statusText.innerText = 'Sync is ON (Active)';
+    statusText.style.color = 'var(--sage)';
+    startSyncTimer();
+    showToast('Live background sync started.');
+  } else {
+    statusText.innerText = 'Sync is OFF';
+    statusText.style.color = 'var(--ink-soft)';
+    stopSyncTimer();
+  }
+}
+function handleRateChange() {
+  if (document.getElementById('auto-sync-toggle').checked) { stopSyncTimer(); startSyncTimer(); }
+}
+function startSyncTimer() {
+  let seconds = parseInt(document.getElementById('sync-rate-input').value, 10) || 30;
+  seconds = Math.max(seconds, 5); 
+  autoSyncTimer = setInterval(async () => {
+    try {
+      const ord = await dbGet(STORAGE_KEY_ORDERS);
+      if (ord) {
+        ordersQueue = ord;
+        if (document.getElementById('tab-orders').classList.contains('active')) renderOrdersQueue();
+      }
+    } catch (e) { console.error("Background sync failed", e); }
+  }, seconds * 1000);
+}
+function stopSyncTimer() {
+  if (autoSyncTimer) { clearInterval(autoSyncTimer); autoSyncTimer = null; }
+}
+
 function applyStoreBranding() {
   document.getElementById('header-shop-name').innerText = shopProfile.name;
   document.getElementById('header-logo').innerText = shopProfile.logoText;
   document.getElementById('banner-bg').style.backgroundImage =
     `linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('${shopProfile.bannerUrl}')`;
-
   if (shopProfile.theme) {
     const r = document.documentElement.style;
     r.setProperty('--oxblood', shopProfile.theme.oxblood);
@@ -424,12 +476,17 @@ function applyStoreBranding() {
 
 function renderAdminControls() {
   const adminEl = document.getElementById('admin-item-controls');
-  if (addonsCatalog.length === 0) { adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet — add one below.</div>`; return; }
+  if (addonsCatalog.length === 0) { adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet.</div>`; return; }
   
-  adminEl.innerHTML = addonsCatalog.map(item => `
+  adminEl.innerHTML = addonsCatalog.map(item => {
+    const priceDisplay = (item.options && item.options.length > 0) 
+      ? item.options.map(o => `${o.label}: $${o.price}`).join(' | ') 
+      : `$${item.price}`;
+
+    return `
     <div class="admin-row" style="align-items:flex-start;">
       <div style="flex:1;">
-        <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem;">$${item.price}</span></h4>
+        <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem; margin-left:6px;">${priceDisplay}</span></h4>
         <span style="font-size:0.74rem; color:var(--ink-soft); display:block; margin-bottom:6px;">
           <strong style="color:var(--ink);">${item.category || 'Other'}:</strong> ${item.desc}
         </span>
@@ -452,7 +509,8 @@ function renderAdminControls() {
           <span class="slider"></span>
         </label>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function uploadItemPhoto(itemId, inputEl) {
@@ -462,42 +520,41 @@ async function uploadItemPhoto(itemId, inputEl) {
   if (!item) return;
 
   showToast('Uploading photo...');
-  
   const fileExt = file.name.split('.').pop();
   const fileName = `item_${itemId}_${Date.now()}.${fileExt}`;
 
   try {
     const { data, error } = await sb.storage.from('shop-images').upload(fileName, file);
     if (error) throw error;
-    
     const { data: urlData } = sb.storage.from('shop-images').getPublicUrl(fileName);
     item.imageUrl = urlData.publicUrl;
-    
     renderAdminControls();
     await saveConfig();
     showToast('Photo saved successfully!');
   } catch (err) {
     showToast('Upload failed. Check your public bucket settings.');
-  } finally {
-    inputEl.value = '';
-  }
+  } finally { inputEl.value = ''; }
 }
 
 function loadItemForEdit(itemId) {
   const item = addonsCatalog.find(i => i.id === itemId);
   if (!item) return;
-  
   editingItemId = itemId;
   
   document.getElementById('new-item-name').value = item.name;
   document.getElementById('new-item-desc').value = item.desc;
   document.getElementById('new-item-category').value = item.category || 'Pantry';
-  document.getElementById('new-item-price').value = item.price;
+  
+  // Format options back to string if they exist
+  if (item.options && item.options.length > 0) {
+    document.getElementById('new-item-price').value = item.options.map(o => `${o.label}:${o.price}`).join(' | ');
+  } else {
+    document.getElementById('new-item-price').value = item.price;
+  }
   
   document.getElementById('form-title-extras').innerText = 'Edit Extra';
   document.getElementById('btn-add-item').innerText = 'Save Changes';
   document.getElementById('btn-cancel-edit').style.display = 'block';
-  
   switchAdminTab('catalog');
   document.getElementById('form-title-extras').scrollIntoView({behavior: 'smooth'});
 }
@@ -509,7 +566,6 @@ function cancelEditExtra() {
   document.getElementById('new-item-category').value = 'Beef';
   document.getElementById('new-item-price').value = '';
   document.getElementById('new-item-image').value = '';
-  
   document.getElementById('form-title-extras').innerText = 'Add a new extra';
   document.getElementById('btn-add-item').innerText = 'Add to menu';
   document.getElementById('btn-add-item').disabled = false;
@@ -517,11 +573,9 @@ function cancelEditExtra() {
 }
 
 async function deleteExtraItem(itemId) {
-  if (!confirm("Are you sure you want to delete this item from the catalog?")) return;
-  
+  if (!confirm("Are you sure you want to delete this item?")) return;
   addonsCatalog = addonsCatalog.filter(i => i.id !== itemId);
   if (editingItemId === itemId) cancelEditExtra();
-  
   renderAdminControls();
   await saveConfig();
   showToast('Item deleted.');
@@ -531,14 +585,29 @@ async function saveExtraItem() {
   const nameInput = document.getElementById('new-item-name');
   const descInput = document.getElementById('new-item-desc');
   const catInput = document.getElementById('new-item-category');
-  const priceInput = document.getElementById('new-item-price');
+  const priceInputStr = document.getElementById('new-item-price').value.trim();
   const imageInput = document.getElementById('new-item-image');
   const btn = document.getElementById('btn-add-item');
 
   const name = nameInput.value.trim();
   if (!name) { showToast('Enter an item name first.'); return; }
-  const price = parseFloat(priceInput.value);
-  if (isNaN(price) || price < 0) { showToast('Enter a valid price of $0 or more.'); return; }
+  
+  let price = 0;
+  let options = null;
+
+  // New Option Parser Logic
+  if (priceInputStr.includes(':')) {
+    options = priceInputStr.split('|').map(opt => {
+      const parts = opt.split(':');
+      if(parts.length === 2) {
+        return { label: parts[0].trim(), price: parseFloat(parts[1].replace(/[^0-9.]/g, '')) };
+      }
+    }).filter(o => o && !isNaN(o.price));
+    if (options.length > 0) price = options[0].price; // Default to first price
+  } else {
+    price = parseFloat(priceInputStr.replace(/[^0-9.]/g, ''));
+    if (isNaN(price) || price < 0) { showToast('Enter a valid price format.'); return; }
+  }
   
   const category = catInput ? catInput.value : 'Pantry';
 
@@ -546,48 +615,33 @@ async function saveExtraItem() {
   btn.innerText = editingItemId ? 'Saving...' : 'Adding...';
 
   let imageUrl = null;
-  
   if (imageInput.files && imageInput.files[0]) {
     const file = imageInput.files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `item_${Date.now()}.${fileExt}`;
-    
     try {
       const { error } = await sb.storage.from('shop-images').upload(fileName, file);
-      if (error) {
-        showToast('Image upload failed, but saving item anyway...');
-      } else {
+      if (!error) {
         const { data: urlData } = sb.storage.from('shop-images').getPublicUrl(fileName);
         imageUrl = urlData.publicUrl;
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) {}
   }
 
   if (editingItemId) {
     const item = addonsCatalog.find(i => i.id === editingItemId);
     if (item) {
-      item.name = name;
-      item.desc = descInput.value.trim();
-      item.category = category;
-      item.price = price;
+      item.name = name; item.desc = descInput.value.trim(); item.category = category;
+      item.price = price; item.options = options;
       if (imageUrl) item.imageUrl = imageUrl;
     }
     showToast(`${name} updated.`);
   } else {
     addonsCatalog.push({ 
-      id: 'item_' + Date.now(), 
-      category: category,
-      name, 
-      desc: descInput.value.trim() || 'Custom cut selection', 
-      price, 
-      count: 0, 
-      inStock: true, 
-      maxCount: 5,
-      imageUrl: imageUrl
+      id: 'item_' + Date.now(), category: category, name, desc: descInput.value.trim() || 'Custom selection', 
+      price, options, count: 0, inStock: true, maxCount: 5, imageUrl: imageUrl
     });
-    showToast(`${name} added to the menu.`);
+    showToast(`${name} added.`);
   }
   
   cancelEditExtra();
@@ -642,7 +696,6 @@ function renderOrdersQueue() {
       <div class="order-line"><strong>Extras:</strong> ${order.extras || 'None'}</div>
       <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
       ${order.customerPhone ? `<div class="order-line"><strong>Phone:</strong> ${order.customerPhone} ${contactLinks}</div>` : ''}
-      ${order.customerEmail ? `<div class="order-line"><strong>Email:</strong> ${order.customerEmail}</div>` : ''}
       ${order.notes ? `<div class="order-notes"><strong>Note:</strong> ${order.notes}</div>` : ''}
       <div class="order-actions">
         ${order.status === 'New' ? `<button class="btn-small" onclick="setOrderStatus(${order.id},'Preparing')">Start prepping</button>` : ''}
@@ -756,7 +809,6 @@ async function updatePackField(key, field, value) {
     box.price = price;
   } else { box[field] = value.trim() || box[field]; }
   await saveConfig();
-  showToast('Pack updated.');
 }
 
 async function updatePackItemField(key, idx, field, value) {
@@ -777,7 +829,7 @@ async function addPackItem(key) {
   boxOptions[key].included.push({ name, qty, note: noteInput.value.trim() || '' });
   renderPacksAdmin();
   await saveConfig();
-  showToast(`${name} added to ${boxOptions[key].name}.`);
+  showToast(`${name} added.`);
 }
 
 async function removePackItem(key, idx) {
@@ -799,7 +851,7 @@ async function resetSlotBookings() {
   pickupSlots.forEach(s => s.booked = 0);
   renderSlotsAdmin();
   await saveConfig();
-  showToast('Slot bookings reset for the next cycle.');
+  showToast('Slot bookings reset.');
 }
 
 async function setOrderStatus(orderId, status) {
@@ -822,49 +874,6 @@ async function deleteOrder(orderId) {
   await saveOrders();
 }
 
-function resizeImageFile(file, maxWidth) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Could not read file'));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('Could not read image'));
-      img.onload = () => {
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-async function handleBannerUpload(input) {
-  const file = input.files && input.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('Please choose an image file.'); input.value = ''; return; }
-  const statusEl = document.getElementById('banner-upload-status');
-  statusEl.innerText = 'Uploading…';
-  try {
-    const dataUrl = await resizeImageFile(file, 1000);
-    shopProfile.bannerUrl = dataUrl;
-    document.getElementById('banner-preview').src = dataUrl;
-    document.getElementById('edit-shop-banner').value = '';
-    applyStoreBranding();
-    await saveConfig();
-    statusEl.innerText = 'Uploaded — now live on the customer view.';
-    showToast('Banner uploaded.');
-  } catch (e) {
-    statusEl.innerText = 'JPG or PNG, resized automatically';
-    showToast('Could not process that image — try a different file.');
-  } finally { input.value = ''; }
-}
-
 async function saveStoreBranding() {
   shopProfile.name = document.getElementById('edit-shop-name').value.trim() || shopProfile.name;
   shopProfile.logoText = document.getElementById('edit-shop-logo').value.trim() || shopProfile.logoText;
@@ -876,7 +885,6 @@ async function saveStoreBranding() {
   shopProfile.hours = document.getElementById('edit-shop-hours').value.trim();
   shopProfile.policyText = document.getElementById('edit-shop-policy').value.trim();
   
-  // Save theme colors
   shopProfile.theme = {
     oxblood: document.getElementById('theme-oxblood').value,
     oxbloodBright: document.getElementById('theme-oxblood').value,
@@ -888,15 +896,12 @@ async function saveStoreBranding() {
   };
 
   applyStoreBranding();
-  document.getElementById('banner-preview').src = shopProfile.bannerUrl;
   await saveConfig();
-  showToast('Branding & color theme updated live.');
 }
 
 async function togglePauseOrders(checkbox) {
   shopProfile.ordersPaused = !checkbox.checked;
   await saveConfig();
-  showToast(shopProfile.ordersPaused ? 'Online pre-orders paused.' : 'Online pre-orders re-enabled.');
 }
 
 function exportAllData() {
@@ -906,20 +911,11 @@ function exportAllData() {
   const a = document.createElement('a');
   a.href = url; a.download = `${shopProfile.name.replace(/\s+/g, '-').toLowerCase()}-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click(); URL.revokeObjectURL(url);
-  showToast('Backup downloaded.');
 }
 
 async function handleCSVUpload(input) {
   const file = input.files && input.files[0];
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.csv')) { 
-    showToast('Please upload a .csv file'); 
-    input.value = ''; 
-    return; 
-  }
-
-  showToast('Reading file...');
-
   const reader = new FileReader();
   reader.onload = async (e) => {
     const text = e.target.result;
@@ -929,54 +925,105 @@ async function handleCSVUpload(input) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i].trim();
       if (!row) continue;
-      
       const columns = [];
-      let current = '';
-      let inQuotes = false;
+      let current = ''; let inQuotes = false;
       for (let char of row) {
         if (char === '"') inQuotes = !inQuotes;
         else if (char === ',' && !inQuotes) { columns.push(current); current = ''; }
         else current += char;
       }
       columns.push(current);
-      
       const cleanCols = columns.map(c => c.trim().replace(/^"|"$/g, ''));
-
       if (i === 0 && (cleanCols[0].toLowerCase().includes('category') || cleanCols[1].toLowerCase().includes('name'))) continue;
 
       if (cleanCols.length >= 4) {
         const category = cleanCols[0];
         const name = cleanCols[1];
         const desc = cleanCols[2];
-        const price = parseFloat(cleanCols[3].replace('$', '')); 
+        const priceCol = cleanCols[3];
+        
+        let price = 0;
+        let options = null;
+
+        // NEW OPTION PARSER FOR CSV
+        if (priceCol.includes(':')) {
+          options = priceCol.split('|').map(opt => {
+            const parts = opt.split(':');
+            return { label: parts[0].trim(), price: parseFloat(parts[1].replace(/[^0-9.]/g, '')) };
+          }).filter(o => !isNaN(o.price));
+          if (options.length > 0) price = options[0].price;
+        } else {
+          price = parseFloat(priceCol.replace(/[^0-9.]/g, ''));
+        }
 
         if (name && !isNaN(price)) {
           addonsCatalog.push({
             id: 'item_' + Date.now() + Math.floor(Math.random() * 1000), 
-            category: category || 'Pantry',
-            name: name,
-            desc: desc || '',
-            price: price,
-            count: 0,
-            inStock: true,
-            maxCount: 5,
-            imageUrl: null 
+            category: category || 'Pantry', name: name, desc: desc || '',
+            price: price, options: options, count: 0, inStock: true, maxCount: 5, imageUrl: null 
           });
           addedCount++;
         }
       }
     }
-
-    if (addedCount > 0) {
-      renderAdminControls();
-      await saveConfig();
-      showToast(`Success! Imported ${addedCount} new items.`);
-    } else {
-      showToast('No items found. Check your columns.');
-    }
+    if (addedCount > 0) { renderAdminControls(); await saveConfig(); showToast(`Imported ${addedCount} items.`); }
     input.value = ''; 
   };
-  
+  reader.readAsText(file);
+}
+
+function handlePacksCSVUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const text = e.target.result;
+    const rows = text.split(/\r?\n/);
+    let addedCount = 0;
+    let newBoxOptions = { ...boxOptions };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].trim();
+      if (!row) continue;
+      const columns = [];
+      let current = ''; let inQuotes = false;
+      for (let char of row) {
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) { columns.push(current); current = ''; }
+        else current += char;
+      }
+      columns.push(current);
+      const cleanCols = columns.map(c => c.trim().replace(/^"|"$/g, ''));
+      if (i === 0 && (cleanCols[0].toLowerCase().includes('id') || cleanCols[1].toLowerCase().includes('name'))) continue;
+
+      if (cleanCols.length >= 5) {
+        const id = cleanCols[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+        const name = cleanCols[1];
+        const price = parseFloat(cleanCols[2].replace('$', ''));
+        const tagline = cleanCols[3];
+        const contentsString = cleanCols[4];
+
+        if (id && name && !isNaN(price)) {
+          const includedArray = contentsString.split('+').map(item => {
+            const parts = item.trim().match(/^(\d+)[xX]\s+(.+)$/i);
+            let qty = 1; let itemName = item.trim(); let note = '';
+            if (parts) { qty = parseInt(parts[1], 10); itemName = parts[2].trim(); }
+            if (itemName.includes('(') && itemName.includes(')')) {
+              const splitIdx = itemName.indexOf('(');
+              note = itemName.slice(splitIdx + 1, itemName.indexOf(')')).trim();
+              itemName = itemName.slice(0, splitIdx).trim();
+            }
+            return { qty, name: itemName, note };
+          }).filter(i => i.name);
+
+          newBoxOptions[id] = { price, name, tagline: tagline || '', included: includedArray };
+          addedCount++;
+        }
+      }
+    }
+    if (addedCount > 0) { boxOptions = newBoxOptions; renderPacksAdmin(); await saveConfig(); showToast(`Imported ${addedCount} packs.`); }
+    input.value = '';
+  };
   reader.readAsText(file);
 }
 
