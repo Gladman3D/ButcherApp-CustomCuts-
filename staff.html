@@ -34,10 +34,11 @@
   .section-title small{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; color:var(--ink-soft); font-weight:500;}
   .form-group{margin-bottom:18px;}
   .form-group label{display:block; font-size:0.8rem; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
-  textarea,select,input[type=text],input[type=password],input[type=number]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
+  textarea,select,input[type=text],input[type=password],input[type=number],input[type=file]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
   textarea:focus,select:focus,input:focus{border-color:var(--oxblood);}
   .btn-primary{display:block; width:100%; background:var(--oxblood); color:#fff; border:none; padding:13px; border-radius:4px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
   .btn-primary:hover{background:var(--oxblood-bright);}
+  .btn-primary:disabled{background:var(--ink-soft); cursor:not-allowed;}
   .btn-secondary{display:block; width:100%; background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:11px; border-radius:4px; font-size:0.82rem; font-weight:600; cursor:pointer; margin-top:9px;}
   .btn-secondary:hover{color:var(--ink); border-color:var(--ink-soft);}
   .btn-small{background:var(--paper); border:1px solid var(--line); color:var(--ink); font-size:0.72rem; font-weight:600; padding:6px 10px; border-radius:3px; cursor:pointer; text-decoration:none; display:inline-block;}
@@ -88,6 +89,7 @@
   .pack-add-row input{padding:8px; font-size:0.78rem;}
   .pack-add-btn{background:var(--ink); color:#fff; border:none; border-radius:3px; padding:0 12px; height:34px; cursor:pointer; font-size:0.78rem; font-weight:600;}
   .field-label{font-size:0.7rem; color:var(--ink-soft); margin-bottom:4px; display:block;}
+  .file-input-wrapper{background:var(--paper); border:1px dashed var(--line); border-radius:4px; padding:6px; display:flex; align-items:center;}
 </style>
 </head>
 <body>
@@ -157,7 +159,13 @@
           <input type="text" id="new-item-name" placeholder="Item name (e.g. Wagyu Rump)">
           <input type="text" id="new-item-desc" placeholder="Description (e.g. 500g dry-aged)">
           <input type="number" id="new-item-price" min="0" step="0.5" placeholder="Price per unit ($)">
-          <button class="btn-primary" onclick="addNewItem()">Add to menu</button>
+          
+          <span class="field-label" style="margin-top:4px; margin-bottom:0;">Item Image (Optional)</span>
+          <div class="file-input-wrapper">
+            <input type="file" id="new-item-image" accept="image/*" style="border:none; background:transparent; padding:4px;">
+          </div>
+          
+          <button class="btn-primary" id="btn-add-item" onclick="addNewItem()">Add to menu</button>
         </div>
       </div>
     </div>
@@ -336,12 +344,22 @@ function applyStoreBranding() {
 function renderAdminControls() {
   const adminEl = document.getElementById('admin-item-controls');
   if (addonsCatalog.length === 0) { adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet — add one below.</div>`; return; }
+  
   adminEl.innerHTML = addonsCatalog.map(item => `
-    <div class="admin-row">
-      <div>
+    <div class="admin-row" style="align-items:flex-start;">
+      <div style="flex:1;">
         <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem;">$${item.price}</span></h4>
-        <span style="font-size:0.74rem; color:var(--ink-soft);">${item.desc}</span>
+        <span style="font-size:0.74rem; color:var(--ink-soft); display:block; margin-bottom:6px;">${item.desc}</span>
+        
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${item.imageUrl ? `<img src="${item.imageUrl}" style="width:32px; height:32px; object-fit:cover; border-radius:3px; border:1px solid var(--line);">` : ''}
+          <label class="btn-small" style="cursor:pointer; font-weight:normal; font-size:0.65rem;">
+            ${item.imageUrl ? 'Change Photo' : 'Add Photo'}
+            <input type="file" accept="image/*" style="display:none;" onchange="uploadItemPhoto('${item.id}', this)">
+          </label>
+        </div>
       </div>
+      
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:0.72rem; color:${item.inStock ? 'var(--sage)' : 'var(--danger)'};">${item.inStock ? 'Active' : 'Paused'}</span>
         <label class="toggle-switch">
@@ -350,6 +368,34 @@ function renderAdminControls() {
         </label>
       </div>
     </div>`).join('');
+}
+
+async function uploadItemPhoto(itemId, inputEl) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  const item = addonsCatalog.find(i => i.id === itemId);
+  if (!item) return;
+
+  showToast('Uploading photo...');
+  
+  const fileExt = file.name.split('.').pop();
+  const fileName = `item_${itemId}_${Date.now()}.${fileExt}`;
+
+  try {
+    const { data, error } = await sb.storage.from('shop-images').upload(fileName, file);
+    if (error) throw error;
+    
+    const { data: urlData } = sb.storage.from('shop-images').getPublicUrl(fileName);
+    item.imageUrl = urlData.publicUrl;
+    
+    renderAdminControls();
+    await saveConfig();
+    showToast('Photo saved successfully!');
+  } catch (err) {
+    showToast('Upload failed. Check your public bucket settings.');
+  } finally {
+    inputEl.value = '';
+  }
 }
 
 function renderSlotsAdmin() {
@@ -398,7 +444,7 @@ function renderOrdersQueue() {
       <div class="order-line"><strong>Pack:</strong> ${order.boxName} (${order.total})</div>
       <div class="order-line"><strong>Extras:</strong> ${order.extras || 'None'}</div>
       <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
-      ${order.customerPhone ? `<div class="order-line"><strong>Phone:</strong> ${order.customerPhone} ${contactLinks}</div>` : ''}
+      ${order.customerPhone ? `<div class="order-line"><strong>Phone:</strong> ${order.customerPhone}${contactLinks}</div>` : ''}
       ${order.customerEmail ? `<div class="order-line"><strong>Email:</strong> ${order.customerEmail}</div>` : ''}
       ${order.notes ? `<div class="order-notes"><strong>Note:</strong> ${order.notes}</div>` : ''}
       <div class="order-actions">
@@ -508,15 +554,55 @@ async function addNewItem() {
   const nameInput = document.getElementById('new-item-name');
   const descInput = document.getElementById('new-item-desc');
   const priceInput = document.getElementById('new-item-price');
+  const imageInput = document.getElementById('new-item-image');
+  const btn = document.getElementById('btn-add-item');
+
   const name = nameInput.value.trim();
   if (!name) { showToast('Enter an item name first.'); return; }
   const price = parseFloat(priceInput.value);
   if (isNaN(price) || price < 0) { showToast('Enter a valid price of $0 or more.'); return; }
-  addonsCatalog.push({ id: 'item_' + Date.now(), name, desc: descInput.value.trim() || 'Custom cut selection', price, count: 0, inStock: true, maxCount: 5 });
-  nameInput.value = ''; descInput.value = ''; priceInput.value = '';
+
+  btn.disabled = true;
+  btn.innerText = 'Adding...';
+
+  let imageUrl = null;
+  
+  if (imageInput.files && imageInput.files[0]) {
+    const file = imageInput.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `item_${Date.now()}.${fileExt}`;
+    
+    try {
+      const { error } = await sb.storage.from('shop-images').upload(fileName, file);
+      if (error) {
+        showToast('Image upload failed, but adding item anyway...');
+      } else {
+        const { data: urlData } = sb.storage.from('shop-images').getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  addonsCatalog.push({ 
+    id: 'item_' + Date.now(), 
+    name, 
+    desc: descInput.value.trim() || 'Custom cut selection', 
+    price, 
+    count: 0, 
+    inStock: true, 
+    maxCount: 5,
+    imageUrl: imageUrl
+  });
+  
+  nameInput.value = ''; descInput.value = ''; priceInput.value = ''; imageInput.value = '';
   renderAdminControls();
   await saveConfig();
   showToast(`${name} added to the menu.`);
+  
+  btn.disabled = false;
+  btn.innerText = 'Add to menu';
 }
 
 async function updatePackField(key, field, value) {
