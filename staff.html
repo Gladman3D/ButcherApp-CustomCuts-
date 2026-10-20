@@ -158,6 +158,16 @@
         <div class="add-item-form">
           <input type="text" id="new-item-name" placeholder="Item name (e.g. Wagyu Rump)">
           <input type="text" id="new-item-desc" placeholder="Description (e.g. 500g dry-aged)">
+          
+          <span class="field-label" style="margin-top:4px; margin-bottom:0;">Category</span>
+          <select id="new-item-category" style="margin-bottom: 8px;">
+            <option value="Beef">Beef</option>
+            <option value="Pork">Pork</option>
+            <option value="Chicken">Chicken</option>
+            <option value="Lamb">Lamb</option>
+            <option value="Pantry">Pantry / Other</option>
+          </select>
+
           <input type="number" id="new-item-price" min="0" step="0.5" placeholder="Price per unit ($)">
           
           <span class="field-label" style="margin-top:4px; margin-bottom:0;">Item Image (Optional)</span>
@@ -283,8 +293,8 @@ let boxOptions = {
 };
 
 let addonsCatalog = [
-  { id: 'brisket', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5 },
-  { id: 'bacon', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
+  { id: 'brisket', category: 'Beef', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
+  { id: 'bacon', category: 'Pork', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
 ];
 
 let pickupSlots = [
@@ -349,7 +359,9 @@ function renderAdminControls() {
     <div class="admin-row" style="align-items:flex-start;">
       <div style="flex:1;">
         <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem;">$${item.price}</span></h4>
-        <span style="font-size:0.74rem; color:var(--ink-soft); display:block; margin-bottom:6px;">${item.desc}</span>
+        <span style="font-size:0.74rem; color:var(--ink-soft); display:block; margin-bottom:6px;">
+          <strong style="color:var(--ink);">${item.category || 'Other'}:</strong> ${item.desc}
+        </span>
         
         <div style="display:flex; align-items:center; gap:8px;">
           ${item.imageUrl ? `<img src="${item.imageUrl}" style="width:32px; height:32px; object-fit:cover; border-radius:3px; border:1px solid var(--line);">` : ''}
@@ -553,6 +565,7 @@ async function toggleStock(itemId) {
 async function addNewItem() {
   const nameInput = document.getElementById('new-item-name');
   const descInput = document.getElementById('new-item-desc');
+  const catInput = document.getElementById('new-item-category');
   const priceInput = document.getElementById('new-item-price');
   const imageInput = document.getElementById('new-item-image');
   const btn = document.getElementById('btn-add-item');
@@ -561,6 +574,8 @@ async function addNewItem() {
   if (!name) { showToast('Enter an item name first.'); return; }
   const price = parseFloat(priceInput.value);
   if (isNaN(price) || price < 0) { showToast('Enter a valid price of $0 or more.'); return; }
+  
+  const category = catInput ? catInput.value : 'Pantry';
 
   btn.disabled = true;
   btn.innerText = 'Adding...';
@@ -587,6 +602,7 @@ async function addNewItem() {
 
   addonsCatalog.push({ 
     id: 'item_' + Date.now(), 
+    category: category,
     name, 
     desc: descInput.value.trim() || 'Custom cut selection', 
     price, 
@@ -597,6 +613,8 @@ async function addNewItem() {
   });
   
   nameInput.value = ''; descInput.value = ''; priceInput.value = ''; imageInput.value = '';
+  if(catInput) catInput.value = 'Beef';
+  
   renderAdminControls();
   await saveConfig();
   showToast(`${name} added to the menu.`);
