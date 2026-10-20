@@ -265,8 +265,8 @@ let boxOptions = {
 };
 
 let addonsCatalog = [
-  { id: 'brisket', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
-  { id: 'bacon', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
+  { id: 'brisket', category: 'Beef', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
+  { id: 'bacon', category: 'Pork', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
 ];
 
 let pickupSlots = [
@@ -368,32 +368,49 @@ function renderAddons() {
   const listEl = document.getElementById('addon-item-list');
   if (addonsCatalog.length === 0) { listEl.innerHTML = `<div class="empty-state">No extras available right now.</div>`; calculateTotal(); return; }
   
-  listEl.innerHTML = addonsCatalog.map(item => {
-    if (!item.inStock && item.count > 0) item.count = 0;
-    const atMax = item.count >= (item.maxCount || 99);
-    
-    const imageTag = item.imageUrl ? `<img src="${item.imageUrl}" class="item-thumbnail" alt="${item.name}">` : '';
-    
-    return `
-      <div class="item-row ${item.inStock ? '' : 'out-of-stock'}">
-        <div class="item-left">
-          ${imageTag}
-          <div class="item-info">
-            <h4>${item.name} ${!item.inStock ? '<span style="color:var(--danger);">(out of stock)</span>' : ''}</h4>
-            <span>${item.desc}</span>
-          </div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">+$${item.price}</span>
-          <div class="counter-controls">
-            <button class="counter-btn" onclick="updateCount('${item.id}', -1)" ${!item.inStock || item.count===0 ? 'disabled' : ''}>-</button>
-            <span class="counter-value" id="count-${item.id}">${item.count}</span>
-            <button class="counter-btn" onclick="updateCount('${item.id}', 1)" ${!item.inStock || atMax ? 'disabled' : ''}>+</button>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
+  // Group the items by their category
+  const grouped = {};
+  addonsCatalog.forEach(item => {
+    const cat = item.category || 'Other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  });
+
+  let html = '';
   
+  // Loop through each category and build the HTML
+  for (const [category, items] of Object.entries(grouped)) {
+    // Add the category header
+    html += `<h4 style="font-family:'Oswald',sans-serif; font-size:1.1rem; margin: 18px 0 10px; color:var(--oxblood); border-bottom: 2px solid var(--line); padding-bottom: 4px;">${category}</h4>`;
+    
+    // Add the items for this category
+    html += items.map(item => {
+      if (!item.inStock && item.count > 0) item.count = 0;
+      const atMax = item.count >= (item.maxCount || 99);
+      const imageTag = item.imageUrl ? `<img src="${item.imageUrl}" class="item-thumbnail" alt="${item.name}">` : '';
+      
+      return `
+        <div class="item-row ${item.inStock ? '' : 'out-of-stock'}">
+          <div class="item-left">
+            ${imageTag}
+            <div class="item-info">
+              <h4 style="font-size:0.88rem; font-weight:600;">${item.name} ${!item.inStock ? '<span style="color:var(--danger);">(out of stock)</span>' : ''}</h4>
+              <span style="font-size:0.74rem; color:var(--ink-soft);">${item.desc}</span>
+            </div>
+          </div>
+          <div class="item-right">
+            <span class="item-price">+$${item.price}</span>
+            <div class="counter-controls">
+              <button class="counter-btn" onclick="updateCount('${item.id}', -1)" ${!item.inStock || item.count===0 ? 'disabled' : ''}>-</button>
+              <span class="counter-value" id="count-${item.id}">${item.count}</span>
+              <button class="counter-btn" onclick="updateCount('${item.id}', 1)" ${!item.inStock || atMax ? 'disabled' : ''}>+</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  
+  listEl.innerHTML = html;
   calculateTotal();
 }
 
