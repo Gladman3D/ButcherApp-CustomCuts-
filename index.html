@@ -11,13 +11,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --paper:#e6e1c4; --paper-dim:#E7D9BB; --card:#f7f3eb; --ink:#2A211A; --ink-soft:#6B5D4D;
+    --paper:#F1E7D3; --paper-dim:#E7D9BB; --card:#FBF6EA; --ink:#2A211A; --ink-soft:#6B5D4D;
     --oxblood:#7A2A2A; --oxblood-bright:#9C3A3A; --mustard:#B4842A; --sage:#54724F; --line:#CBB68F; --danger:#A83232;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{
     font-family:'Inter',sans-serif;
-    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px), var(--sage);
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px), var(--paper);
     color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:18px 14px 40px;
   }
   .container{width:100%; max-width:600px; background:var(--card); border-radius:4px; border:1px solid var(--line); overflow:hidden; box-shadow:0 8px 24px rgba(42,33,26,0.14); margin-bottom:20px; position:relative;}
@@ -33,7 +33,7 @@
   .grid-options{display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:22px;}
   .card-option{background:var(--paper); border:2px solid var(--line); border-radius:4px; padding:14px; cursor:pointer; text-align:left; transition:border-color .15s;}
   .card-option:hover{border-color:var(--oxblood-bright);}
-  .card-option.selected{border-color:var(--oxblood); background:#F4E4DC;}
+  .card-option.selected{border-color:var(--oxblood); background:rgba(122, 42, 42, 0.08);}
   .card-option h3{font-family:'Oswald',sans-serif; font-size:0.92rem; font-weight:600;}
   .card-option p{font-size:0.76rem; color:var(--ink-soft); margin-top:3px;}
   .included-list{border:1px dashed var(--line); border-radius:4px; padding:10px 14px; margin-bottom:20px; background:repeating-linear-gradient(135deg, rgba(180,132,42,0.05) 0 8px, transparent 8px 16px);}
@@ -248,7 +248,12 @@ let shopProfile = {
   bannerUrl: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=800&q=80",
   address: "", phone: "", hours: "",
   policyText: "Orders can be changed or cancelled up to 24 hours before your pickup slot.",
-  ordersPaused: false
+  ordersPaused: false,
+  theme: {
+    oxblood: "#7A2A2A", oxbloodBright: "#9C3A3A",
+    paper: "#F1E7D3", card: "#FBF6EA",
+    ink: "#2A211A", mustard: "#B4842A", sage: "#54724F"
+  }
 };
 
 let boxOptions = {
@@ -291,11 +296,11 @@ async function loadState() {
       if (cfg.addonsCatalog) addonsCatalog = cfg.addonsCatalog;
       if (cfg.pickupSlots) pickupSlots = cfg.pickupSlots;
     }
-  } catch (e) { /* use defaults */ }
+  } catch (e) {}
   try {
     const ord = await dbGet(STORAGE_KEY_ORDERS);
     if (ord) ordersQueue = ord;
-  } catch (e) { /* no orders yet */ }
+  } catch (e) {}
 }
 
 async function saveConfig() {
@@ -325,6 +330,17 @@ function applyStoreBranding() {
   document.getElementById('banner-bg').style.backgroundImage =
     `linear-gradient(rgba(42,33,26,0.15), rgba(42,33,26,0.82)), url('${shopProfile.bannerUrl}')`;
   document.getElementById('policy-text').innerText = shopProfile.policyText || '';
+  
+  if (shopProfile.theme) {
+    const r = document.documentElement.style;
+    r.setProperty('--oxblood', shopProfile.theme.oxblood);
+    r.setProperty('--oxblood-bright', shopProfile.theme.oxbloodBright);
+    r.setProperty('--paper', shopProfile.theme.paper);
+    r.setProperty('--card', shopProfile.theme.card);
+    r.setProperty('--ink', shopProfile.theme.ink);
+    r.setProperty('--mustard', shopProfile.theme.mustard);
+    r.setProperty('--sage', shopProfile.theme.sage);
+  }
   renderShopFooter();
 }
 
@@ -368,7 +384,6 @@ function renderAddons() {
   const listEl = document.getElementById('addon-item-list');
   if (addonsCatalog.length === 0) { listEl.innerHTML = `<div class="empty-state">No extras available right now.</div>`; calculateTotal(); return; }
   
-  // Group the items by their category
   const grouped = {};
   addonsCatalog.forEach(item => {
     const cat = item.category || 'Other';
@@ -377,13 +392,8 @@ function renderAddons() {
   });
 
   let html = '';
-  
-  // Loop through each category and build the HTML
   for (const [category, items] of Object.entries(grouped)) {
-    // Add the category header
     html += `<h4 style="font-family:'Oswald',sans-serif; font-size:1.1rem; margin: 18px 0 10px; color:var(--oxblood); border-bottom: 2px solid var(--line); padding-bottom: 4px;">${category}</h4>`;
-    
-    // Add the items for this category
     html += items.map(item => {
       if (!item.inStock && item.count > 0) item.count = 0;
       const atMax = item.count >= (item.maxCount || 99);
@@ -527,8 +537,8 @@ function trackOrder() {
   if (!order) { resultEl.innerHTML = `<div class="empty-state">No order found with that number.</div>`; return; }
   
   const formattedDate = order.orderDate ? new Date(order.orderDate).toLocaleString() : 'N/A';
-  
   const statusClass = order.status === 'Preparing' ? 'status-preparing' : order.status === 'Ready' ? 'status-ready' : 'status-new';
+  
   resultEl.innerHTML = `
     <div class="order-card">
       <div class="order-card-header"><h4>#${order.id} — ${order.customer}</h4><span class="status-pill ${statusClass}">${order.status}</span></div>
@@ -610,7 +620,7 @@ function prefillFromProfile(email) {
 }
 
 function renderPastOrders(email) {
- const listEl = document.getElementById('past-orders-list');
+  const listEl = document.getElementById('past-orders-list');
   const mine = ordersQueue.filter(o => o.customerEmail && o.customerEmail.toLowerCase() === email.toLowerCase());
   
   if (mine.length === 0) { 
@@ -626,7 +636,6 @@ function renderPastOrders(email) {
       <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
         ${mine.slice(0, 5).map(o => {
           const formattedDate = o.orderDate ? new Date(o.orderDate).toLocaleString() : 'Recent';
-          
           return `
           <div class="order-card" style="margin-bottom:0; background:var(--card);">
             <div class="order-card-header"><h4>#${o.id}</h4><span style="font-size:0.72rem; color:var(--ink-soft);">${o.total}</span></div>
@@ -651,13 +660,9 @@ function reorderFromHistory(orderId) {
 
 async function deleteOrder(orderId) {
   if (!confirm("Are you sure you want to delete this past order from your history?")) return;
-
   ordersQueue = ordersQueue.filter(o => o.id !== orderId);
   await saveOrders();
-
-  if (currentUserEmail) {
-    renderPastOrders(currentUserEmail);
-  }
+  if (currentUserEmail) renderPastOrders(currentUserEmail);
   showToast('Order deleted from history.');
 }
 
