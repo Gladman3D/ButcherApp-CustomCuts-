@@ -208,6 +208,9 @@
     <div class="included-list" id="included-list"></div>
 
     <div class="section-title">2. Add extras <small>optional, priced per unit</small></div>
+    <div class="form-group" style="margin-bottom: 14px;">
+      <input type="text" id="extras-search-input" placeholder="Search for cuts, packs, or pantry items..." oninput="renderAddons()" style="background:#fff; border-color:var(--oxblood); border-width:2px;">
+    </div>
     <div class="item-list" id="addon-item-list"></div>
 
     <div class="form-group">
@@ -473,8 +476,28 @@ function renderAddons() {
   const listEl = document.getElementById('addon-item-list');
   if (addonsCatalog.length === 0) { listEl.innerHTML = `<div class="empty-state">No extras available right now.</div>`; calculateTotal(); return; }
   
+  // --- NEW: Live Search Engine ---
+  const searchInput = document.getElementById('extras-search-input');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  
+  let filteredCatalog = addonsCatalog;
+  if (searchTerm) {
+    filteredCatalog = addonsCatalog.filter(item => 
+      item.name.toLowerCase().includes(searchTerm) || 
+      (item.desc && item.desc.toLowerCase().includes(searchTerm)) ||
+      (item.category && item.category.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  if (filteredCatalog.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">No items match "${searchTerm}".</div>`;
+    calculateTotal();
+    return;
+  }
+  // -------------------------------
+  
   const grouped = {};
-  addonsCatalog.forEach(item => {
+  filteredCatalog.forEach(item => {
     const cat = item.category || 'Other';
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(item);
