@@ -30,7 +30,7 @@
   .step{padding:22px 20px;}
   .section-title{font-family:'Oswald',sans-serif; font-size:1.02rem; font-weight:600; margin-bottom:12px; color:var(--ink); display:flex; justify-content:space-between; align-items:baseline;}
   .section-title small{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; color:var(--ink-soft); font-weight:500;}
-  .grid-options{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px;}
+  .grid-options{display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:22px;}
   .card-option{background:var(--paper); border:2px solid var(--line); border-radius:4px; padding:14px; cursor:pointer; text-align:left; transition:border-color .15s;}
   .card-option:hover{border-color:var(--oxblood-bright);}
   .card-option.selected{border-color:var(--oxblood); background:#F4E4DC;}
@@ -43,10 +43,14 @@
   .item-list{display:flex; flex-direction:column; gap:9px; margin-bottom:20px;}
   .item-row{display:flex; justify-content:space-between; align-items:center; background:var(--paper); padding:11px 14px; border-radius:4px; border:1px solid var(--line);}
   .item-row.out-of-stock{opacity:0.42; border-style:dashed;}
+  
+  .item-left { display:flex; align-items:center; gap:12px; }
+  .item-thumbnail { width:48px; height:48px; border-radius:4px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
   .item-info h4{font-size:0.88rem; font-weight:600;}
   .item-info span{font-size:0.74rem; color:var(--ink-soft);}
   .item-right{display:flex; align-items:center; gap:12px;}
   .item-price{font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:var(--mustard); font-weight:600;}
+  
   .counter-controls{display:flex; align-items:center; gap:9px;}
   .counter-btn{background:var(--ink); color:#fff; border:none; width:24px; height:24px; border-radius:3px; font-weight:600; cursor:pointer;}
   .counter-btn:hover{background:var(--oxblood);}
@@ -261,7 +265,7 @@ let boxOptions = {
 };
 
 let addonsCatalog = [
-  { id: 'brisket', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5 },
+  { id: 'brisket', name: 'Slow Cook Brisket', desc: '1.5kg untrimmed whole packer', price: 15, count: 0, inStock: true, maxCount: 5, imageUrl: 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100' },
   { id: 'bacon', name: 'Smoked Bacon Rashers', desc: '500g double-smoked', price: 8, count: 0, inStock: true, maxCount: 5 }
 ];
 
@@ -363,14 +367,21 @@ function renderIncluded() {
 function renderAddons() {
   const listEl = document.getElementById('addon-item-list');
   if (addonsCatalog.length === 0) { listEl.innerHTML = `<div class="empty-state">No extras available right now.</div>`; calculateTotal(); return; }
+  
   listEl.innerHTML = addonsCatalog.map(item => {
     if (!item.inStock && item.count > 0) item.count = 0;
     const atMax = item.count >= (item.maxCount || 99);
+    
+    const imageTag = item.imageUrl ? `<img src="${item.imageUrl}" class="item-thumbnail" alt="${item.name}">` : '';
+    
     return `
       <div class="item-row ${item.inStock ? '' : 'out-of-stock'}">
-        <div class="item-info">
-          <h4>${item.name} ${!item.inStock ? '<span style="color:var(--danger);">(out of stock)</span>' : ''}</h4>
-          <span>${item.desc}</span>
+        <div class="item-left">
+          ${imageTag}
+          <div class="item-info">
+            <h4>${item.name} ${!item.inStock ? '<span style="color:var(--danger);">(out of stock)</span>' : ''}</h4>
+            <span>${item.desc}</span>
+          </div>
         </div>
         <div class="item-right">
           <span class="item-price">+$${item.price}</span>
@@ -382,6 +393,7 @@ function renderAddons() {
         </div>
       </div>`;
   }).join('');
+  
   calculateTotal();
 }
 
