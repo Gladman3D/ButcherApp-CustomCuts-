@@ -491,7 +491,6 @@ function renderAddons() {
       let priceDisplay = '';
       let optionDropdown = '';
       
-      // NEW VARIANT ENGINE UI
       if (item.options && item.options.length > 0) {
         if (typeof item.selectedOptionIndex === 'undefined') item.selectedOptionIndex = 0;
         const currentPrice = item.options[item.selectedOptionIndex].price;
@@ -521,9 +520,9 @@ function renderAddons() {
           <div class="item-right">
             ${priceDisplay}
             <div class="counter-controls">
-              <button class="counter-btn" onclick="updateCount('${item.id}', -1)" ${!item.inStock || item.count===0 ? 'disabled' : ''}>-</button>
+              <button class="counter-btn" id="minus-${item.id}" onclick="updateCount('${item.id}', -1)" ${!item.inStock || item.count===0 ? 'disabled' : ''}>-</button>
               <span class="counter-value" id="count-${item.id}">${item.count}</span>
-              <button class="counter-btn" onclick="updateCount('${item.id}', 1)" ${!item.inStock || atMax ? 'disabled' : ''}>+</button>
+              <button class="counter-btn" id="plus-${item.id}" onclick="updateCount('${item.id}', 1)" ${!item.inStock || atMax ? 'disabled' : ''}>+</button>
             </div>
           </div>
         </div>`;
@@ -572,8 +571,14 @@ function updateCount(itemId, change) {
   if (next < 0 || next > (item.maxCount || 99)) return;
   item.count = next;
   document.getElementById(`count-${itemId}`).innerText = item.count;
+  
+  // Manually unlock or lock the buttons based on the new count
+  const minusBtn = document.getElementById(`minus-${itemId}`);
+  const plusBtn = document.getElementById(`plus-${itemId}`);
+  if (minusBtn) minusBtn.disabled = (item.count === 0);
+  if (plusBtn) plusBtn.disabled = (item.count >= (item.maxCount || 99));
+
   calculateTotal();
-  // We only re-render the count and total to avoid redrawing the dropdown while the user clicks
 }
 
 function calculateTotal() {
