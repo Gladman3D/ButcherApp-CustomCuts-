@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Staff Dashboard — Central Prime Meats</title>
-<meta http-equiv="refresh" content="120">
+<meta http-equiv="refresh" content="30">
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥩</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -182,6 +182,16 @@
           </div>
         </div>
       </div>
+
+      <div class="admin-section">
+        <h3>Bulk Upload Extras (CSV)</h3>
+        <p style="font-size:0.75rem; color:var(--ink-soft); margin-bottom:10px;">
+          Build your list in Excel or Google Sheets with 4 columns: <strong>Category, Name, Description, Price</strong>. Export as a .csv file and upload it here.
+        </p>
+        <div class="file-input-wrapper">
+          <input type="file" id="csv-upload-input" accept=".csv" onchange="handleCSVUpload(this)" style="border:none; background:transparent; padding:4px;">
+        </div>
+      </div>
     </div>
 
     <div id="admin-slots-content" style="display:none;">
@@ -310,7 +320,7 @@ let pickupSlots = [
 
 let ordersQueue = [];
 let isStaffLoggedIn = false;
-let editingItemId = null; // Tracks if we are editing an extra
+let editingItemId = null;
 const STAFF_PIN = '1994';
 
 async function loadState() {
@@ -828,6 +838,77 @@ function exportAllData() {
   a.href = url; a.download = `${shopProfile.name.replace(/\s+/g, '-').toLowerCase()}-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click(); URL.revokeObjectURL(url);
   showToast('Backup downloaded.');
+}
+
+async function handleCSVUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.csv')) { 
+    showToast('Please upload a .csv file'); 
+    input.value = ''; 
+    return; 
+  }
+
+  showToast('Reading file...');
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const text = e.target.result;
+    const rows = text.split(/\r?\n/);
+    let addedCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].trim();
+      if (!row) continue;
+      
+      const columns = [];
+      let current = '';
+      let inQuotes = false;
+      for (let char of row) {
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) { columns.push(current); current = ''; }
+        else current += char;
+      }
+      columns.push(current);
+      
+      const cleanCols = columns.map(c => c.trim().replace(/^"|"$/g, ''));
+
+      if (i === 0 && (cleanCols[0].toLowerCase().includes('category') || cleanCols[1].toLowerCase().includes('name'))) continue;
+
+      if (cleanCols.length >= 4) {
+        const category = cleanCols[0];
+        const name = cleanCols[1];
+        const desc = cleanCols[2];
+        const price = parseFloat(cleanCols[3].replace('$', '')); 
+
+        if (name && !isNaN(price)) {
+          addonsCatalog.push({
+            id: 'item_' + Date.now() + Math.floor(Math.random() * 1000), 
+            category: category || 'Pantry',
+            name: name,
+            desc: desc || '',
+            price: price,
+            count: 0,
+            inStock: true,
+            maxCount: 5,
+            imageUrl: null 
+          });
+          addedCount++;
+        }
+      }
+    }
+
+    if (addedCount > 0) {
+      renderAdminControls();
+      await saveConfig();
+      showToast(`Success! Imported ${addedCount} new items.`);
+    } else {
+      showToast('No items found. Check your columns.');
+    }
+    input.value = ''; 
+  };
+  
+  reader.readAsText(file);
 }
 
 (async function init() {
