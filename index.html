@@ -40,8 +40,19 @@
   .included-row{display:flex; justify-content:space-between; font-size:0.83rem; padding:5px 0; border-bottom:1px dashed var(--line);}
   .included-row:last-child{border-bottom:none;}
   .included-row span:last-child{font-family:'IBM Plex Mono',monospace; color:var(--sage); font-size:0.76rem;}
-  .item-list{display:flex; flex-direction:column; gap:9px; margin-bottom:20px;}
-  .item-row{display:flex; justify-content:space-between; align-items:center; background:var(--paper); padding:11px 14px; border-radius:4px; border:1px solid var(--line);}
+  
+  /* --- CATEGORY ACCORDION CSS --- */
+  .category-accordion { margin-bottom: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); overflow: hidden; transition: all 0.2s ease;}
+  .category-accordion summary { font-family: 'Oswald', sans-serif; font-size: 1.1rem; color: var(--oxblood); padding: 14px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  .category-accordion summary::-webkit-details-marker { display: none; }
+  .category-accordion summary:hover { background: rgba(0,0,0,0.02); }
+  .category-accordion[open] summary { border-bottom: 1px dashed var(--line); background: var(--paper); }
+  .category-accordion-content { padding: 12px; background: var(--paper); display: flex; flex-direction: column; gap: 9px; }
+  .accordion-icon { font-size: 0.8rem; color: var(--ink-soft); transition: transform 0.2s ease; }
+  .category-accordion[open] .accordion-icon { transform: rotate(180deg); }
+
+  .item-list{display:flex; flex-direction:column; margin-bottom:20px;}
+  .item-row{display:flex; justify-content:space-between; align-items:center; background:var(--card); padding:11px 14px; border-radius:4px; border:1px solid var(--line);}
   .item-row.out-of-stock{opacity:0.42; border-style:dashed;}
   
   .item-left { display:flex; align-items:center; gap:12px; transition: opacity 0.2s; border-radius: 4px; flex: 1; }
@@ -211,6 +222,7 @@
     <div class="form-group" style="margin-bottom: 14px;">
       <input type="text" id="extras-search-input" placeholder="Search for cuts, packs, or pantry items..." oninput="renderAddons()" style="background:#fff; border-color:var(--oxblood); border-width:2px;">
     </div>
+    
     <div class="item-list" id="addon-item-list"></div>
 
     <div class="form-group">
@@ -366,13 +378,11 @@ function closeItemModal(e) {
   document.getElementById('item-modal').classList.remove('show');
 }
 
-// Triggered when a customer changes the weight dropdown
 function updateItemVariant(itemId, selectEl) {
   const item = addonsCatalog.find(i => i.id === itemId);
   if (!item) return;
   item.selectedOptionIndex = parseInt(selectEl.value, 10);
   
-  // Instantly update the price display without re-rendering the whole list
   const currentPrice = item.options[item.selectedOptionIndex].price;
   document.getElementById(`price-display-${itemId}`).innerText = '+$' + currentPrice.toFixed(2);
   
@@ -476,7 +486,6 @@ function renderAddons() {
   const listEl = document.getElementById('addon-item-list');
   if (addonsCatalog.length === 0) { listEl.innerHTML = `<div class="empty-state">No extras available right now.</div>`; calculateTotal(); return; }
   
-  // --- NEW: Live Search Engine ---
   const searchInput = document.getElementById('extras-search-input');
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   
@@ -494,7 +503,6 @@ function renderAddons() {
     calculateTotal();
     return;
   }
-  // -------------------------------
   
   const grouped = {};
   filteredCatalog.forEach(item => {
@@ -503,9 +511,21 @@ function renderAddons() {
     grouped[cat].push(item);
   });
 
+  // If there is an active search, force the accordions open so they can see the results instantly
+  const isOpenAttribute = searchTerm ? 'open' : '';
+
   let html = '';
   for (const [category, items] of Object.entries(grouped)) {
-    html += `<h4 style="font-family:'Oswald',sans-serif; font-size:1.1rem; margin: 18px 0 10px; color:var(--oxblood); border-bottom: 2px solid var(--line); padding-bottom: 4px;">${category}</h4>`;
+    
+    html += `
+      <details class="category-accordion" ${isOpenAttribute}>
+        <summary>
+          <span>${category} <small style="font-family:'Inter',sans-serif; font-size:0.75rem; color:var(--ink-soft); font-weight:normal; margin-left:6px;">(${items.length})</small></span>
+          <span class="accordion-icon">▼</span>
+        </summary>
+        <div class="category-accordion-content">
+    `;
+    
     html += items.map(item => {
       if (!item.inStock && item.count > 0) item.count = 0;
       const atMax = item.count >= (item.maxCount || 99);
@@ -550,6 +570,8 @@ function renderAddons() {
           </div>
         </div>`;
     }).join('');
+    
+    html += `</div></details>`;
   }
   
   listEl.innerHTML = html;
@@ -595,7 +617,6 @@ function updateCount(itemId, change) {
   item.count = next;
   document.getElementById(`count-${itemId}`).innerText = item.count;
   
-  // Manually unlock or lock the buttons based on the new count
   const minusBtn = document.getElementById(`minus-${itemId}`);
   const plusBtn = document.getElementById(`plus-${itemId}`);
   if (minusBtn) minusBtn.disabled = (item.count === 0);
@@ -607,7 +628,6 @@ function updateCount(itemId, change) {
 function calculateTotal() {
   const base = currentBoxType === 'none' ? 0 : (boxOptions[currentBoxType] ? boxOptions[currentBoxType].price : 0);
   
-  // Calculate extras considering selected variants
   const extras = addonsCatalog.reduce((sum, i) => {
     const currentPrice = (i.options && i.options.length > 0) ? i.options[i.selectedOptionIndex || 0].price : i.price;
     return sum + (i.count * currentPrice);
@@ -635,7 +655,6 @@ async function submitOrder() {
 
   btn.disabled = true; btn.innerText = 'Placing order…';
 
-  // Format the extras summary to include the selected weight variant
   const extrasSummary = addonsCatalog.filter(i => i.count > 0).map(i => {
     const variantLabel = (i.options && i.options.length > 0) ? ` (${i.options[i.selectedOptionIndex || 0].label})` : '';
     return `${i.count}x ${i.name}${variantLabel}`;
@@ -718,11 +737,9 @@ function applyRepeatOrder() {
       const m = part.trim().match(/^(\d+)x\s+(.+)$/i);
       if (!m) return;
       
-      // Parse out variant labels if they exist, e.g. "Brisket (1kg Bulk)"
       let itemName = m[2].trim();
       let item = addonsCatalog.find(i => i.name.toLowerCase() === itemName.toLowerCase());
       
-      // If direct match fails, try stripping the brackets "(1kg Bulk)"
       if (!item && itemName.includes('(')) {
         const cleanName = itemName.split('(')[0].trim();
         item = addonsCatalog.find(i => i.name.toLowerCase() === cleanName.toLowerCase());
