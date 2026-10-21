@@ -239,7 +239,10 @@
     </div>
 
     <div class="summary-box">
-      <div style="font-family:'Oswald',sans-serif; font-size:0.95rem; margin-bottom:8px; border-bottom:1px dashed #5A4C3D; padding-bottom:6px; color:#fff;">Cart Summary</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px dashed #5A4C3D; padding-bottom:6px;">
+        <span style="font-family:'Oswald',sans-serif; font-size:0.95rem; color:#fff;">Cart Summary</span>
+        <button onclick="clearCart()" style="background:transparent; border:none; color:#C9B899; font-size:0.72rem; cursor:pointer; text-decoration:underline;">Clear cart</button>
+      </div>
       <div id="cart-items-breakdown"></div>
       <div class="summary-row" style="margin-top:6px;"><span>Selected pack</span><span id="summary-box-name" style="color:#fff;">No Pack</span></div>
       <div class="summary-row"><span>Pickup window</span><span id="summary-pickup" style="color:#fff;"></span></div>
@@ -631,6 +634,15 @@ function updateCount(itemId, change) {
   if (plusBtn) plusBtn.disabled = (item.count >= (item.maxCount || 99));
 
   calculateTotal();
+}
+
+function clearCart() {
+  selectBoxSize('none');
+  addonsCatalog.forEach(i => {
+    i.count = 0;
+  });
+  renderAddons();
+  showToast('Cart cleared.');
 }
 
 function calculateTotal() {
