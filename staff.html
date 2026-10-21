@@ -151,6 +151,7 @@
 
     <div id="admin-packs-content" style="display:none;">
       <div class="section-title">Edit packs <small>changes apply live</small></div>
+      <button class="btn-secondary" style="margin-bottom: 14px;" onclick="createNewPack()">+ Create New Pack</button>
       <div id="pack-edit-list"></div>
     </div>
 
@@ -571,7 +572,6 @@ function loadItemForEdit(itemId) {
   document.getElementById('new-item-desc').value = item.desc;
   document.getElementById('new-item-category').value = item.category || 'Pantry';
   
-  // Format options back to string if they exist
   if (item.options && item.options.length > 0) {
     document.getElementById('new-item-price').value = item.options.map(o => `${o.label}:${o.price}`).join(' | ');
   } else {
@@ -621,7 +621,6 @@ async function saveExtraItem() {
   let price = 0;
   let options = null;
 
-  // New Option Parser Logic
   if (priceInputStr.includes(':')) {
     options = priceInputStr.split('|').map(opt => {
       const parts = opt.split(':');
@@ -629,7 +628,7 @@ async function saveExtraItem() {
         return { label: parts[0].trim(), price: parseFloat(parts[1].replace(/[^0-9.]/g, '')) };
       }
     }).filter(o => o && !isNaN(o.price));
-    if (options.length > 0) price = options[0].price; // Default to first price
+    if (options.length > 0) price = options[0].price; 
   } else {
     price = parseFloat(priceInputStr.replace(/[^0-9.]/g, ''));
     if (isNaN(price) || price < 0) { showToast('Enter a valid price format.'); return; }
@@ -747,6 +746,10 @@ function exportOrdersCSV() {
 
 function renderPacksAdmin() {
   const el = document.getElementById('pack-edit-list');
+  if (Object.keys(boxOptions).length === 0) {
+    el.innerHTML = '<div class="empty-state">No packs exist. Create one above.</div>';
+    return;
+  }
   el.innerHTML = Object.keys(boxOptions).map(key => {
     const box = boxOptions[key];
     const includedRows = box.included.map((item, idx) => `
@@ -758,7 +761,10 @@ function renderPacksAdmin() {
       </div>`).join('');
     return `
       <div class="pack-edit-card">
-        <h3>${box.name}</h3>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">
+          <h3 style="margin-bottom:0;">${box.name || 'Unnamed Pack'}</h3>
+          <button class="btn-small danger" onclick="deletePack('${key}')" style="font-weight:normal;">Delete Pack</button>
+        </div>
         <div class="pack-two-col">
           <div class="form-group" style="margin-bottom:10px;">
             <span class="field-label">Pack name</span>
@@ -783,6 +789,22 @@ function renderPacksAdmin() {
         </div>
       </div>`;
   }).join('');
+}
+
+async function createNewPack() {
+  const id = 'pack_' + Date.now();
+  boxOptions[id] = { price: 0, name: "New Pack", tagline: "", included: [] };
+  renderPacksAdmin();
+  await saveConfig();
+  showToast('New blank pack created.');
+}
+
+async function deletePack(key) {
+  if (!confirm(`Are you sure you want to completely delete the "${boxOptions[key].name}" pack?`)) return;
+  delete boxOptions[key];
+  renderPacksAdmin();
+  await saveConfig();
+  showToast('Pack deleted.');
 }
 
 function verifyStaffPin() {
@@ -947,6 +969,7 @@ async function handleCSVUpload(input) {
     const text = e.target.result;
     const rows = text.split(/\r?\n/);
     let addedCount = 0;
+    let updatedCount = 0;
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i].trim();
@@ -971,7 +994,6 @@ async function handleCSVUpload(input) {
         let price = 0;
         let options = null;
 
-        // NEW OPTION PARSER FOR CSV
         if (priceCol.includes(':')) {
           options = priceCol.split('|').map(opt => {
             const parts = opt.split(':');
@@ -983,16 +1005,30 @@ async function handleCSVUpload(input) {
         }
 
         if (name && !isNaN(price)) {
-          addonsCatalog.push({
-            id: 'item_' + Date.now() + Math.floor(Math.random() * 1000), 
-            category: category || 'Pantry', name: name, desc: desc || '',
-            price: price, options: options, count: 0, inStock: true, maxCount: 5, imageUrl: null 
-          });
-          addedCount++;
+          const existingIndex = addonsCatalog.findIndex(item => item.name.toLowerCase() === name.toLowerCase());
+          
+          if (existingIndex !== -1) {
+            addonsCatalog[existingIndex].category = category || 'Pantry';
+            addonsCatalog[existingIndex].desc = desc || '';
+            addonsCatalog[existingIndex].price = price;
+            addonsCatalog[existingIndex].options = options;
+            updatedCount++;
+          } else {
+            addonsCatalog.push({
+              id: 'item_' + Date.now() + Math.floor(Math.random() * 1000), 
+              category: category || 'Pantry', name: name, desc: desc || '',
+              price: price, options: options, count: 0, inStock: true, maxCount: 5, imageUrl: null 
+            });
+            addedCount++;
+          }
         }
       }
     }
-    if (addedCount > 0) { renderAdminControls(); await saveConfig(); showToast(`Imported ${addedCount} items.`); }
+    if (addedCount > 0 || updatedCount > 0) { 
+      renderAdminControls(); 
+      await saveConfig(); 
+      showToast(`Imported: ${addedCount} new, ${updatedCount} updated.`); 
+    }
     input.value = ''; 
   };
   reader.readAsText(file);
