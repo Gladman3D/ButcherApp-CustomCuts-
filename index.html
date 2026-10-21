@@ -50,17 +50,18 @@
   .accordion-icon { font-size: 0.8rem; color: var(--ink-soft); transition: transform 0.2s ease; }
   .category-accordion[open] .accordion-icon { transform: rotate(180deg); }
 
- .item-list{display:flex; flex-direction:column; margin-bottom:20px;}
-  .item-row{display:flex; justify-content:space-between; align-items:center; background:var(--card); padding:11px 14px; border-radius:4px; border:1px solid var(--line);}
+  .item-list{display:flex; flex-direction:column; margin-bottom:20px;}
+  .item-row{display:flex; flex-direction:column; gap:10px; background:var(--card); padding:14px; border-radius:4px; border:1px solid var(--line);}
   .item-row.out-of-stock{opacity:0.42; border-style:dashed;}
   
-  .item-left { display:flex; align-items:center; gap:12px; transition: opacity 0.2s; border-radius: 4px; flex: 1; }
+  .item-left { display:flex; align-items:flex-start; gap:12px; transition: opacity 0.2s; border-radius: 4px; width:100%; }
   .item-left:hover { opacity: 0.75; }
-  .item-thumbnail { width:48px; height:48px; border-radius:4px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
-  .item-info h4{font-size:0.88rem; font-weight:600;}
-  .item-info span{font-size:0.74rem; color:var(--ink-soft);}
-  .item-right{display:flex; align-items:center; gap:12px; flex-shrink: 0;}
-  .item-price{font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:var(--mustard); font-weight:600;}
+  .item-thumbnail { width:54px; height:54px; border-radius:4px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
+  .item-info { flex:1; }
+  .item-info h4{font-size:0.95rem; font-weight:600; margin-bottom:3px;}
+  .item-info span{font-size:0.8rem; color:var(--ink-soft); line-height:1.4; display:block;}
+  .item-right{display:flex; align-items:center; justify-content:space-between; width:100%; padding-top:12px; border-top:1px dashed rgba(203,182,143,0.4);}
+  .item-price{font-family:'IBM Plex Mono',monospace; font-size:0.95rem; color:var(--mustard); font-weight:600;}
   
   .counter-controls{display:flex; align-items:center; gap:9px;}
   .counter-btn{background:var(--ink); color:#fff; border:none; width:24px; height:24px; border-radius:3px; font-weight:600; cursor:pointer;}
@@ -72,9 +73,12 @@
   textarea,select,input[type=text]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
   textarea:focus,select:focus,input:focus{border-color:var(--oxblood);}
   .slot-note{font-size:0.72rem; color:var(--ink-soft); margin-top:5px;}
+  
   .summary-box{background:var(--ink); color:var(--paper); border-radius:4px; padding:16px; margin-bottom:18px;}
   .summary-row{display:flex; justify-content:space-between; margin-bottom:7px; font-size:0.83rem; color:#C9B899;}
   .summary-row.total{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.05rem; color:#fff; border-top:1px dashed #5A4C3D; padding-top:10px; margin-top:6px;}
+  .cart-item-breakdown{border-bottom:1px dashed #4A3C2F; padding-bottom:6px; margin-bottom:6px; font-size:0.8rem; display:flex; justify-content:space-between;}
+  
   .btn-primary{display:block; width:100%; background:var(--oxblood); color:#fff; border:none; padding:13px; border-radius:4px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; letter-spacing:0.2px;}
   .btn-primary:hover{background:var(--oxblood-bright);}
   .btn-primary:disabled{background:var(--ink-soft); cursor:not-allowed;}
@@ -235,7 +239,9 @@
     </div>
 
     <div class="summary-box">
-      <div class="summary-row"><span>Selected pack</span><span id="summary-box-name" style="color:#fff;">No Pack</span></div>
+      <div style="font-family:'Oswald',sans-serif; font-size:0.95rem; margin-bottom:8px; border-bottom:1px dashed #5A4C3D; padding-bottom:6px; color:#fff;">Cart Summary</div>
+      <div id="cart-items-breakdown"></div>
+      <div class="summary-row" style="margin-top:6px;"><span>Selected pack</span><span id="summary-box-name" style="color:#fff;">No Pack</span></div>
       <div class="summary-row"><span>Pickup window</span><span id="summary-pickup" style="color:#fff;"></span></div>
       <div class="summary-row total"><span>Total</span><span id="summary-total">$0.00</span></div>
     </div>
@@ -630,12 +636,40 @@ function updateCount(itemId, change) {
 function calculateTotal() {
   const base = currentBoxType === 'none' ? 0 : (boxOptions[currentBoxType] ? boxOptions[currentBoxType].price : 0);
   
-  const extras = addonsCatalog.reduce((sum, i) => {
-    const currentPrice = (i.options && i.options.length > 0) ? i.options[i.selectedOptionIndex || 0].price : i.price;
-    return sum + (i.count * currentPrice);
-  }, 0);
+  const breakdownEl = document.getElementById('cart-items-breakdown');
+  let breakdownHtml = '';
   
-  const total = base + extras;
+  if (currentBoxType !== 'none' && boxOptions[currentBoxType]) {
+    breakdownHtml += `
+      <div class="cart-item-breakdown">
+        <span>1x ${boxOptions[currentBoxType].name}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;">$${boxOptions[currentBoxType].price.toFixed(2)}</span>
+      </div>`;
+  }
+  
+  let extrasTotal = 0;
+  addonsCatalog.forEach(i => {
+    if (i.count > 0) {
+      const currentPrice = (i.options && i.options.length > 0) ? i.options[i.selectedOptionIndex || 0].price : i.price;
+      const variantLabel = (i.options && i.options.length > 0) ? ` (${i.options[i.selectedOptionIndex || 0].label})` : '';
+      const itemTotal = i.count * currentPrice;
+      extrasTotal += itemTotal;
+      
+      breakdownHtml += `
+        <div class="cart-item-breakdown">
+          <span>${i.count}x ${i.name}${variantLabel}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;">$${itemTotal.toFixed(2)}</span>
+        </div>`;
+    }
+  });
+
+  if (!breakdownHtml) {
+    breakdownHtml = `<div style="font-size:0.78rem; color:#A89880; font-style:italic; margin-bottom:6px;">Your cart is empty</div>`;
+  }
+
+  breakdownEl.innerHTML = breakdownHtml;
+
+  const total = base + extrasTotal;
   document.getElementById('summary-total').innerText = `$${total.toFixed(2)}`;
   return total;
 }
@@ -665,13 +699,11 @@ async function submitOrder() {
   
   const boxDisplayName = currentBoxType === 'none' ? 'No Pack' : boxOptions[currentBoxType].name;
 
-  // 1. Build the order object exactly as it will look in the database
   const order = {
     id: Math.floor(1000 + Math.random() * 9000), customer: customerName, customerPhone, customerEmail: currentUserEmail || '',
     boxName: boxDisplayName, extras: extrasSummary, notes, pickup: slot.label, total: `$${total.toFixed(2)}`, status: 'New', orderDate,
   };
 
-  // 2. Build the exact line items list to send to Stripe
   const stripeItems = [];
   if (currentBoxType !== 'none') {
     stripeItems.push({ name: boxOptions[currentBoxType].name, price: boxOptions[currentBoxType].price, qty: 1 });
@@ -684,12 +716,10 @@ async function submitOrder() {
     }
   });
 
-  // 3. Save the pending order info locally before we redirect them off the page
   localStorage.setItem('pendingCheckoutOrder', JSON.stringify(order));
   localStorage.setItem('pendingSlotId', slotId);
 
   try {
-    // Call the Supabase Edge Function to generate the Stripe URL
     const { data, error } = await sb.functions.invoke('stripe-checkout', {
       body: { 
         items: stripeItems, 
@@ -700,7 +730,6 @@ async function submitOrder() {
 
     if (error) throw error;
     if (data && data.url) {
-      // Redirect the user to Stripe's secure payment page
       window.location.href = data.url;
     } else {
       throw new Error("Could not reach Stripe. Ensure Edge Function is deployed and JWT toggle is OFF.");
@@ -750,6 +779,7 @@ async function trackOrder() {
         <div class="order-card-header"><h4>#${order.id} — ${order.customer}</h4><span class="status-pill ${statusClass}">${order.status}</span></div>
         <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--mustard); margin-bottom:4px;">Ordered on: ${formattedDate}</div>
         <div class="order-line"><strong>Pack:</strong> ${order.boxName} (${order.total})</div>
+        <div class="order-line"><strong>Extras:</strong> ${order.extras || 'None'}</div>
         <div class="order-line"><strong>Pickup:</strong> ${order.pickup}</div>
       </div>`;
   } catch (err) {
@@ -864,13 +894,27 @@ function renderPastOrders(email) {
       <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
         ${mine.slice(0, 5).map(o => {
           const formattedDate = o.orderDate ? new Date(o.orderDate).toLocaleString() : 'Recent';
+          const statusClass = o.status === 'Preparing' ? 'status-preparing' : o.status === 'Ready' ? 'status-ready' : 'status-new';
           return `
           <div class="order-card" style="margin-bottom:0; background:var(--card);">
-            <div class="order-card-header"><h4>#${o.id}</h4><span style="font-size:0.72rem; color:var(--ink-soft);">${o.total}</span></div>
+            <div class="order-card-header">
+              <h4>#${o.id}</h4>
+              <span class="status-pill ${statusClass}">${o.status}</span>
+            </div>
             <div class="order-line" style="font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--mustard); margin-bottom:4px;">Ordered: ${formattedDate}</div>
-            <div class="order-line"><strong>Pack:</strong> ${o.boxName}</div>
+            
+            <details style="margin-top:6px; background:var(--paper); padding:6px 8px; border-radius:3px; border:1px solid var(--line);">
+              <summary style="font-size:0.75rem; font-weight:600; cursor:pointer;">View order details (${o.total})</summary>
+              <div style="margin-top:6px; font-size:0.75rem; color:var(--ink-soft); display:flex; flex-direction:column; gap:3px;">
+                <div><strong>Pack:</strong> ${o.boxName}</div>
+                <div><strong>Extras:</strong> ${o.extras || 'None'}</div>
+                <div><strong>Pickup:</strong> ${o.pickup}</div>
+                ${o.notes ? `<div><strong>Notes:</strong> ${o.notes}</div>` : ''}
+              </div>
+            </details>
+
             <div style="display:flex; gap:6px; margin-top:8px;">
-              <button class="btn-small" onclick="reorderFromHistory(${o.id})">Reorder</button>
+              <button class="btn-small" onclick="reorderFromHistory(${o.id})">Repeat order</button>
               <button class="btn-small" style="color:var(--danger); border-color:var(--danger);" onclick="deleteOrder(${o.id})">Delete</button>
             </div>
           </div>`;
@@ -899,8 +943,6 @@ async function deleteOrder(orderId) {
   applyStoreBranding();
   applyPauseState();
   
-  // STRIPE REDIRECT HANDLER
-  // This code runs when a user bounces back from the Stripe checkout page
   const urlParams = new URLSearchParams(window.location.search);
   
   if (urlParams.get('success') === 'true') {
@@ -910,10 +952,8 @@ async function deleteOrder(orderId) {
     if (pendingOrderData) {
       const order = JSON.parse(pendingOrderData);
       
-      // Officially lock in the order and save to Supabase
       ordersQueue.unshift(order);
       
-      // Permanently claim the pickup slot capacity
       if (pendingSlotId) {
         const slot = pickupSlots.find(s => s.id === pendingSlotId);
         if (slot) slot.booked += 1;
@@ -921,25 +961,20 @@ async function deleteOrder(orderId) {
 
       await Promise.all([saveOrders(), saveConfig()]);
       
-      // Clean out the temporary storage lockbox
       localStorage.removeItem('pendingCheckoutOrder');
       localStorage.removeItem('pendingSlotId');
       
-      // Immediately show the success receipt
       document.getElementById('ticket-id').innerText = `Order #${order.id}`;
       document.getElementById('customer-view').style.display = 'none';
       document.getElementById('success-screen').style.display = 'block';
       
-      // Hide the "?success=true" parameter from the address bar so they don't refresh the page and re-trigger it
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   } else if (urlParams.get('canceled') === 'true') {
     showToast('Payment was canceled. Your cart is still saved.');
     window.history.replaceState({}, document.title, window.location.pathname);
-    // Don't delete the pending storage, letting them retry if needed
   }
 
-  // Load the normal UI if we aren't displaying the success screen
   if (document.getElementById('success-screen').style.display !== 'block') {
     renderPackCards();
     renderIncluded();
