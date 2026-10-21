@@ -57,8 +57,19 @@
   .admin-tab.active{background:var(--oxblood); color:#fff; border-color:var(--oxblood);}
   .admin-section{background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:15px; margin-bottom:14px;}
   .admin-section h3{font-family:'Oswald',sans-serif; font-size:0.9rem; margin-bottom:10px; font-weight:600;}
-  .admin-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
-  .admin-row:last-child{border-bottom:none;}
+  .admin-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); background:var(--card); padding:10px; margin-bottom:6px; border-radius:4px;}
+  .admin-row:last-child{margin-bottom:0;}
+  
+  /* --- CATEGORY ACCORDION ADMIN --- */
+  .admin-accordion { margin-bottom: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); overflow: hidden; }
+  .admin-accordion summary { font-family: 'Oswald', sans-serif; font-size: 1.05rem; color: var(--oxblood); padding: 12px 14px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  .admin-accordion summary::-webkit-details-marker { display: none; }
+  .admin-accordion summary:hover { background: rgba(0,0,0,0.02); }
+  .admin-accordion[open] summary { border-bottom: 1px dashed var(--line); background: var(--paper); }
+  .admin-accordion-content { padding: 10px; background: var(--paper); display: flex; flex-direction: column; gap: 6px; }
+  .accordion-icon { font-size: 0.75rem; color: var(--ink-soft); transition: transform 0.2s ease; }
+  .admin-accordion[open] .accordion-icon { transform: rotate(180deg); }
+
   .toggle-switch{position:relative; display:inline-block; width:40px; height:22px;}
   .toggle-switch input{opacity:0; width:0; height:0;}
   .slider{position:absolute; cursor:pointer; inset:0; background:var(--line); transition:.2s; border-radius:22px;}
@@ -156,16 +167,16 @@
     </div>
 
     <div id="admin-catalog-content" style="display:none;">
-      <div class="section-title">Extras catalog <small>live toggle</small></div>
+      <div class="section-title">Extras catalog <small>live categories</small></div>
       
-      <!-- NEW ADMIN SEARCH BAR -->
+      <!-- SEARCH BAR -->
       <div class="form-group" style="margin-bottom: 14px;">
         <input type="text" id="admin-extras-search" placeholder="Search menu items to edit..." oninput="renderAdminControls()" style="background:#fff; border-color:var(--oxblood); border-width:2px;">
       </div>
       
-      <div class="admin-section" id="admin-item-controls"></div>
+      <div id="admin-item-controls"></div>
       
-      <div class="admin-section">
+      <div class="admin-section" style="margin-top: 18px;">
         <h3 id="form-title-extras">Add a new extra</h3>
         <div class="add-item-form">
           <input type="text" id="new-item-name" placeholder="Item name (e.g. Wagyu Rump)">
@@ -296,7 +307,7 @@
     <div id="admin-settings-content" style="display:none;">
       <div class="section-title">Store status <small>sync & orders</small></div>
       <div class="admin-section">
-        <div class="admin-row">
+        <div class="admin-row" style="background:none; padding:9px 0;">
           <div>
             <h4 style="font-size:0.87rem;">Accepting online pre-orders</h4>
           </div>
@@ -306,7 +317,7 @@
           </label>
         </div>
         
-        <div class="admin-row">
+        <div class="admin-row" style="background:none; padding:9px 0;">
           <div>
             <h4 style="font-size:0.87rem;">Live Order Sync</h4>
             <span style="font-size:0.74rem; color:var(--ink-soft);" id="sync-status-text">Sync is OFF</span>
@@ -504,40 +515,65 @@ function renderAdminControls() {
     adminEl.innerHTML = `<div class="empty-state">No items match "${searchTerm}".</div>`;
     return;
   }
-  
-  adminEl.innerHTML = filteredCatalog.map(item => {
-    const priceDisplay = (item.options && item.options.length > 0) 
-      ? item.options.map(o => `${o.label}: $${o.price}`).join(' | ') 
-      : `$${item.price}`;
 
-    return `
-    <div class="admin-row" style="align-items:flex-start;">
-      <div style="flex:1;">
-        <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem; margin-left:6px;">${priceDisplay}</span></h4>
-        <span style="font-size:0.74rem; color:var(--ink-soft); display:block; margin-bottom:6px;">
-          <strong style="color:var(--ink);">${item.category || 'Other'}:</strong> ${item.desc}
-        </span>
-        
-        <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-          ${item.imageUrl ? `<img src="${item.imageUrl}" style="width:32px; height:32px; object-fit:cover; border-radius:3px; border:1px solid var(--line);">` : ''}
-          <label class="btn-small" style="cursor:pointer; font-weight:normal; font-size:0.65rem;">
-            ${item.imageUrl ? 'Change Photo' : 'Add Photo'}
-            <input type="file" accept="image/*" style="display:none;" onchange="uploadItemPhoto('${item.id}', this)">
-          </label>
-          <button class="btn-small" onclick="loadItemForEdit('${item.id}')" style="font-weight:normal; font-size:0.65rem;">Edit Details</button>
-          <button class="btn-small danger" onclick="deleteExtraItem('${item.id}')" style="font-weight:normal; font-size:0.65rem;">Delete</button>
+  const grouped = {};
+  filteredCatalog.forEach(item => {
+    const cat = item.category || 'Other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  });
+
+  const isOpenAttribute = searchTerm ? 'open' : '';
+  let html = '';
+
+  for (const [category, items] of Object.entries(grouped)) {
+    html += `
+      <details class="admin-accordion" ${isOpenAttribute}>
+        <summary>
+          <span>${category} <small style="font-family:'Inter',sans-serif; font-size:0.75rem; color:var(--ink-soft); font-weight:normal; margin-left:6px;">(${items.length})</small></span>
+          <span class="accordion-icon">▼</span>
+        </summary>
+        <div class="admin-accordion-content">
+    `;
+
+    html += items.map(item => {
+      const priceDisplay = (item.options && item.options.length > 0) 
+        ? item.options.map(o => `${o.label}: $${o.price}`).join(' | ') 
+        : `$${item.price}`;
+
+      return `
+      <div class="admin-row" style="align-items:flex-start;">
+        <div style="flex:1;">
+          <h4 style="font-size:0.87rem;">${item.name} <span style="color:var(--mustard); font-family:'IBM Plex Mono',monospace; font-size:0.75rem; margin-left:6px;">${priceDisplay}</span></h4>
+          <span style="font-size:0.74rem; color:var(--ink-soft); display:block; margin-bottom:6px;">
+            ${item.desc}
+          </span>
+          
+          <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            ${item.imageUrl ? `<img src="${item.imageUrl}" style="width:32px; height:32px; object-fit:cover; border-radius:3px; border:1px solid var(--line);">` : ''}
+            <label class="btn-small" style="cursor:pointer; font-weight:normal; font-size:0.65rem;">
+              ${item.imageUrl ? 'Change Photo' : 'Add Photo'}
+              <input type="file" accept="image/*" style="display:none;" onchange="uploadItemPhoto('${item.id}', this)">
+            </label>
+            <button class="btn-small" onclick="loadItemForEdit('${item.id}')" style="font-weight:normal; font-size:0.65rem;">Edit Details</button>
+            <button class="btn-small danger" onclick="deleteExtraItem('${item.id}')" style="font-weight:normal; font-size:0.65rem;">Delete</button>
+          </div>
         </div>
-      </div>
-      
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:0.72rem; color:${item.inStock ? 'var(--sage)' : 'var(--danger)'};">${item.inStock ? 'Active' : 'Paused'}</span>
-        <label class="toggle-switch">
-          <input type="checkbox" ${item.inStock ? 'checked' : ''} onchange="toggleStock('${item.id}')">
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>`;
-  }).join('');
+        
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:0.72rem; color:${item.inStock ? 'var(--sage)' : 'var(--danger)'};">${item.inStock ? 'Active' : 'Paused'}</span>
+          <label class="toggle-switch">
+            <input type="checkbox" ${item.inStock ? 'checked' : ''} onchange="toggleStock('${item.id}')">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>`;
+    }).join('');
+
+    html += `</div></details>`;
+  }
+  
+  adminEl.innerHTML = html;
 }
 
 async function uploadItemPhoto(itemId, inputEl) {
