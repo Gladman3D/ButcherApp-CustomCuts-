@@ -156,6 +156,12 @@
 
     <div id="admin-catalog-content" style="display:none;">
       <div class="section-title">Extras catalog <small>live toggle</small></div>
+      
+      <!-- NEW ADMIN SEARCH BAR -->
+      <div class="form-group" style="margin-bottom: 14px;">
+        <input type="text" id="admin-extras-search" placeholder="Search menu items to edit..." oninput="renderAdminControls()" style="background:#fff; border-color:var(--oxblood); border-width:2px;">
+      </div>
+      
       <div class="admin-section" id="admin-item-controls"></div>
       
       <div class="admin-section">
@@ -476,9 +482,29 @@ function applyStoreBranding() {
 
 function renderAdminControls() {
   const adminEl = document.getElementById('admin-item-controls');
-  if (addonsCatalog.length === 0) { adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet.</div>`; return; }
+  const searchInput = document.getElementById('admin-extras-search');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+  let filteredCatalog = addonsCatalog;
+  if (searchTerm) {
+    filteredCatalog = addonsCatalog.filter(item => 
+      item.name.toLowerCase().includes(searchTerm) || 
+      (item.desc && item.desc.toLowerCase().includes(searchTerm)) ||
+      (item.category && item.category.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  if (addonsCatalog.length === 0) { 
+    adminEl.innerHTML = `<div class="empty-state">No extras in the catalog yet.</div>`; 
+    return; 
+  }
   
-  adminEl.innerHTML = addonsCatalog.map(item => {
+  if (filteredCatalog.length === 0) {
+    adminEl.innerHTML = `<div class="empty-state">No items match "${searchTerm}".</div>`;
+    return;
+  }
+  
+  adminEl.innerHTML = filteredCatalog.map(item => {
     const priceDisplay = (item.options && item.options.length > 0) 
       ? item.options.map(o => `${o.label}: $${o.price}`).join(' | ') 
       : `$${item.price}`;
@@ -532,7 +558,7 @@ async function uploadItemPhoto(itemId, inputEl) {
     await saveConfig();
     showToast('Photo saved successfully!');
   } catch (err) {
-    showToast('Upload failed. Check your public bucket settings.');
+    showToast('Error: ' + err.message);
   } finally { inputEl.value = ''; }
 }
 
