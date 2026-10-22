@@ -33,7 +33,7 @@
   .section-title small{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; color:var(--ink-soft); font-weight:500;}
   .form-group{margin-bottom:18px;}
   .form-group label{display:block; font-size:0.8rem; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
-  textarea,select,input[type=text],input[type=password],input[type=number],input[type=file],input[type=color]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
+  textarea,select,input[type=text],input[type=email],input[type=password],input[type=number],input[type=file],input[type=color]{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:11px; color:var(--ink); font-size:0.85rem; font-family:'Inter',sans-serif; outline:none;}
   textarea:focus,select:focus,input:focus{border-color:var(--oxblood);}
   .color-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;}
   .color-picker-group{display:flex; align-items:center; gap:8px; background:var(--paper); border:1px solid var(--line); padding:6px 10px; border-radius:4px;}
@@ -48,8 +48,7 @@
   .btn-small:hover{border-color:var(--oxblood);}
   .btn-small.danger{color:var(--danger); border-color:var(--danger);}
   #pin-view{text-align:center; padding:40px 20px;}
-  .pin-box{max-width:260px; margin:0 auto;}
-  .pin-input{text-align:center; font-size:1.4rem; letter-spacing:8px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
+  .pin-box{max-width:280px; margin:0 auto;}
   #admin-panel{display:none;}
   .badge-notice{background:#EAEFE7; color:var(--sage); font-size:0.74rem; padding:5px 10px; border-radius:4px; display:inline-block; margin-bottom:14px; font-weight:600; font-family:'IBM Plex Mono',monospace;}
   .admin-tabs{display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap;}
@@ -120,20 +119,20 @@
     <a class="view-link" href="index.html">View shop ↗</a>
   </div>
 
-  <!-- PIN -->
+  <!-- SECURE STAFF AUTH VIEW -->
   <div id="pin-view" class="step">
     <div class="pin-box">
-      <h3 style="font-family:'Oswald',sans-serif; font-size:1.05rem; margin-bottom:6px;">Staff access</h3>
-      <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:18px;">Enter the store PIN to open the prep dashboard.</p>
+      <h3 style="font-family:'Oswald',sans-serif; font-size:1.05rem; margin-bottom:6px;">Staff Access</h3>
+      <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:18px;">Sign in securely to manage the shop.</p>
       <div class="form-group">
-        <input type="password" id="staff-pin-input" class="pin-input" maxlength="4" placeholder="••••">
-        <span id="pin-error" style="color:var(--danger); font-size:0.75rem; display:block; margin-top:6px;"></span>
+        <input type="email" id="staff-email-input" placeholder="butcher@example.com" style="text-align:center;">
       </div>
-      <button class="btn-primary" onclick="verifyStaffPin()">Unlock</button>
+      <button class="btn-primary" onclick="staffSignIn()" id="staff-sign-in-btn">Send Login Link</button>
+      <p style="font-size:0.72rem; color:var(--ink-soft); margin-top:12px;">We'll email you a secure, one-click login link.</p>
     </div>
   </div>
 
-  <!-- ADMIN -->
+  <!-- ADMIN DASHBOARD -->
   <div id="admin-panel" class="step">
     <div class="badge-notice">● Prep dashboard live</div>
     <div class="admin-tabs">
@@ -335,13 +334,16 @@
       </div>
     </div>
 
-    <button class="btn-secondary" style="margin-top:6px;" onclick="staffLogout()">Lock portal</button>
+    <button class="btn-secondary" style="margin-top:6px;" onclick="staffLogout()">Lock portal (Sign out)</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+// IMPORTANT: Update this variable to match your butcher's email address
+const AUTHORIZED_STAFF_EMAIL = 'gladmanj1995@gmail.com';
+
 const STORAGE_KEY_CONFIG = 'shop-config';
 const STORAGE_KEY_ORDERS = 'orders';
 
@@ -401,7 +403,6 @@ let ordersQueue = [];
 let isStaffLoggedIn = false;
 let editingItemId = null;
 let autoSyncTimer = null;
-const STAFF_PIN = '1994';
 
 async function loadState() {
   if (!hasStorage) return;
@@ -843,27 +844,56 @@ async function deletePack(key) {
   showToast('Pack deleted.');
 }
 
-function verifyStaffPin() {
-  const entered = document.getElementById('staff-pin-input').value;
-  if (entered === STAFF_PIN) {
+// ------ STAFF AUTHENTICATION LOGIC ------ //
+
+async function staffSignIn() {
+  const email = document.getElementById('staff-email-input').value.trim();
+  if (!email || !email.includes('@')) { showToast('Please enter a valid email address.'); return; }
+
+  const btn = document.getElementById('staff-sign-in-btn');
+  btn.disabled = true; btn.innerText = 'Sending...';
+
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+
+  if (error) {
+    showToast('Error sending link. Try again.');
+    btn.disabled = false; btn.innerText = 'Send Login Link';
+  } else {
+    showToast('Check your email for the secure login link!');
+    btn.innerText = 'Link Sent!';
+  }
+}
+
+async function staffLogout() {
+  if (sb) await sb.auth.signOut();
+  isStaffLoggedIn = false;
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('pin-view').style.display = 'block';
+  document.getElementById('staff-email-input').value = '';
+  showToast('Logged out securely.');
+}
+
+function checkStaffSession(session) {
+  if (session && session.user && session.user.email.toLowerCase() === AUTHORIZED_STAFF_EMAIL.toLowerCase()) {
     isStaffLoggedIn = true;
-    localStorage.setItem('staffLoggedIn', 'true');
     document.getElementById('pin-view').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
     renderOrdersQueue(); renderPacksAdmin(); renderAdminControls(); renderSlotsAdmin();
   } else {
-    document.getElementById('pin-error').innerText = 'Incorrect PIN — try again.';
-    document.getElementById('staff-pin-input').value = '';
+    isStaffLoggedIn = false;
+    document.getElementById('pin-view').style.display = 'block';
+    document.getElementById('admin-panel').style.display = 'none';
+    
+    // If someone is logged in but it is the WRONG email, kick them out
+    if (session && session.user) {
+      showToast('Unauthorized email. Access denied.');
+      sb.auth.signOut();
+    }
   }
 }
 
-function staffLogout() {
-  isStaffLoggedIn = false;
-  localStorage.removeItem('staffLoggedIn');
-  document.getElementById('admin-panel').style.display = 'none';
-  document.getElementById('pin-view').style.display = 'block';
-  document.getElementById('staff-pin-input').value = '';
-}
+// ---------------------------------------- //
 
 function switchAdminTab(tab) {
   ['orders','packs','catalog','slots','branding','tools','settings'].forEach(t => {
@@ -1148,11 +1178,18 @@ function handlePacksCSVUpload(input) {
     document.getElementById('theme-sage').value = shopProfile.theme.sage || '#54724F';
   }
 
-  if (localStorage.getItem('staffLoggedIn') === 'true') {
-    isStaffLoggedIn = true;
-    document.getElementById('pin-view').style.display = 'none';
-    document.getElementById('admin-panel').style.display = 'block';
-    renderOrdersQueue(); renderPacksAdmin(); renderAdminControls(); renderSlotsAdmin();
+  // Listen for Supabase Auth State Changes
+  if (sb) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      checkStaffSession(session);
+
+      sb.auth.onAuthStateChange((_event, session) => {
+        checkStaffSession(session);
+      });
+    } catch (e) {
+      console.error("Auth init error:", e);
+    }
   }
 })();
 </script>
