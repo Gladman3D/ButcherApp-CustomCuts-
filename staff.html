@@ -341,8 +341,11 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// IMPORTANT: Update this variable to match your butcher's email address
-const AUTHORIZED_STAFF_EMAIL = 'gladmanj1995@gmail.com';
+// IMPORTANT: Update these two emails to your actual staff/butcher emails
+const AUTHORIZED_STAFF_EMAILS = [
+  'gladmanj1995@gmail.com',
+  'geordan7@hotmail.com'
+];
 
 const STORAGE_KEY_CONFIG = 'shop-config';
 const STORAGE_KEY_ORDERS = 'orders';
@@ -875,7 +878,7 @@ async function staffLogout() {
 }
 
 function checkStaffSession(session) {
-  if (session && session.user && session.user.email.toLowerCase() === AUTHORIZED_STAFF_EMAIL.toLowerCase()) {
+  if (session && session.user && AUTHORIZED_STAFF_EMAILS.includes(session.user.email.toLowerCase())) {
     isStaffLoggedIn = true;
     document.getElementById('pin-view').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
